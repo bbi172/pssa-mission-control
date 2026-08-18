@@ -63,7 +63,8 @@ export async function POST(req: NextRequest) {
     if (!teacherId) {
       // Creates the real login AND automatically emails a
       // "set your password" link — no custom email code needed.
-      const { data: newUser, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(email)
+      const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/set-password`
+const { data: newUser, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, { redirectTo })
 
       if (inviteErr || !newUser?.user) {
         summary.errors.push(`${email}: ${inviteErr?.message || 'invite failed'}`)
