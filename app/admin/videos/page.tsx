@@ -41,14 +41,25 @@ export default function AdminVideosPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { setRunning(false); return }
 
-    alert(`DEBUG: uploading as user ID ${session.user.id}, email ${session.user.email}`)
-
     for (const file of selectedFiles) {
       updateStatus(file.name, 'uploading')
 
+      // Ask our server (using the proven service_role key) to pre-approve this upload
+      const authRes = await fetch('/api/get-upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, accessToken: session.access_token }),
+      })
+      const authResult = await authRes.json()
+
+      if (authResult.error) {
+        updateStatus(file.name, 'error', authResult.error)
+        continue
+      }
+
       const { error: uploadErr } = await supabase.storage
         .from('videos')
-        .upload(file.name, file, { upsert: true })
+        .uploadToSignedUrl(authResult.path, authResult.token, file)
 
       if (uploadErr) {
         console.error('FULL UPLOAD ERROR:', uploadErr)
