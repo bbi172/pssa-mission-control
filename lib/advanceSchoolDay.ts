@@ -3,6 +3,8 @@ import { supabaseAdmin } from './supabaseAdminClient'
 // Advances ONE school by one day. isClosure=true records a closure and
 // skips penalizing anyone. isClosure=false is a normal day ending — any
 // section with no submission for today gets auto-logged as missed.
+// Either way, substitute access resets off for every teacher in the
+// school, since it's meant to be a same-day-only toggle.
 export async function advanceOneSchool(schoolId: string, isClosure: boolean, reason?: string) {
   const { data: school, error: schoolErr } = await supabaseAdmin
     .from('schools')
@@ -53,6 +55,12 @@ export async function advanceOneSchool(schoolId: string, isClosure: boolean, rea
     .eq('id', schoolId)
 
   if (updateErr) throw new Error(updateErr.message)
+
+  // Reset substitute access for the new day — it's a "just for today" toggle
+  await supabaseAdmin
+    .from('teachers')
+    .update({ substitute_enabled: false })
+    .eq('school_id', schoolId)
 
   return dayNumber
 }
