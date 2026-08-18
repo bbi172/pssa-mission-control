@@ -51,7 +51,8 @@ export default function AdminVideosPage() {
         .upload(file.name, file, { upsert: true })
 
       if (uploadErr) {
-        updateStatus(file.name, 'error', uploadErr.message)
+        console.error('FULL UPLOAD ERROR:', uploadErr)
+        updateStatus(file.name, 'error', JSON.stringify(uploadErr, Object.getOwnPropertyNames(uploadErr)))
         continue
       }
 
