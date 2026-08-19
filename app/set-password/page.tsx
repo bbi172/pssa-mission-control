@@ -13,19 +13,28 @@ export default function SetPasswordPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    // Check immediately, in case the session is already there
-    supabase.auth.getSession().then(({ data }) => {
+    async function establishSession() {
+      // Manually read the tokens out of the URL instead of relying on
+      // automatic detection, which isn't reliably firing.
+      const hash = window.location.hash.substring(1) // strip leading #
+      const params = new URLSearchParams(hash)
+      const access_token = params.get('access_token')
+      const refresh_token = params.get('refresh_token')
+
+      if (access_token && refresh_token) {
+        const { error: sessionErr } = await supabase.auth.setSession({ access_token, refresh_token })
+        if (!sessionErr) {
+          setReady(true)
+          return
+        }
+      }
+
+      // Fallback: maybe a session already exists some other way
+      const { data } = await supabase.auth.getSession()
       if (data.session) setReady(true)
-    })
+    }
 
-    // Also listen for the session appearing asynchronously — this is what
-    // actually fires once Supabase finishes processing the invite link,
-    // which can happen a moment after the page first loads.
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) setReady(true)
-    })
-
-    return () => { listener.subscription.unsubscribe() }
+    establishSession()
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
