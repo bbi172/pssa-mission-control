@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import '../marketing.css'
 
-export default function ProductsPage() {
+export default function ContactPage() {
   return (
     <div className="marketing-site">
       <header>
@@ -18,9 +18,15 @@ export default function ProductsPage() {
 
       <main>
         <div className="content">
-          <span className="eyebrow">Our Products</span>
-          <h1>Tools that help teachers see, and share, real student growth.</h1>
-          <p>We&apos;re building simple, classroom-ready tools that help teachers turn everyday learning checks into consistent practice — giving students an encouraging, easy-to-understand picture of their own progress over time.</p>
+          <span className="eyebrow">Get In Touch</span>
+          <h1>Questions? We&apos;d love to hear from you.</h1>
+          <p>Whether you&apos;re a teacher, a principal, or a district administrator curious about our tools, reach out and we&apos;ll get back to you soon.</p>
+          <p style={{ marginTop: 24 }}>
+            <a href="mailto:info@bbi-ventures.com" style={{ color: 'var(--maroon)', fontWeight: 600, fontSize: '18px', textDecoration: 'none' }}>
+              info@bbi-ventures.com
+            </a>
+          </p>
+          <p style={{ marginTop: 18, fontSize: '13.5px' }}>We typically respond within 1–2 business days.</p>
         </div>
       </main>
 

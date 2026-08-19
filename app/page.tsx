@@ -21,7 +21,7 @@ export default function HomePage() {
           <div className="navlinks">
             <Link href="/">About</Link>
             <Link href="/products">Products</Link>
-            <a href="#contact">Contact</a>
+            <a href="/contact">Contact</a>
             <Link href="/login" className="login-btn">Login</Link>
           </div>
         </nav>
@@ -33,8 +33,8 @@ export default function HomePage() {
         </div>
       </main>
 
-      <footer id="contact">
-        <p>hello@bbi-ventures.com &nbsp;·&nbsp; © 2026 BBI Ventures</p>
+      <footer>
+        <p>info@bbi-ventures.com &nbsp;·&nbsp; © 2026 BBI Ventures</p>
       </footer>
     </div>
   )
