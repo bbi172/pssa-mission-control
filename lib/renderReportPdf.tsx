@@ -52,34 +52,36 @@ function ReportDocument({ data }: { data: WeeklyReportData }) {
           </View>
         </View>
 
-        <Text style={styles.note}>
-          Scores above reflect the whole school&apos;s performance without naming individual classrooms, to keep the focus on shared progress rather than comparison between classes.
-        </Text>
+        <View break>
+          <Text style={styles.note}>
+            Scores above reflect the whole school&apos;s performance without naming individual classrooms, to keep the focus on shared progress rather than comparison between classes.
+          </Text>
 
-        <View style={styles.statBox}>
-          <Text style={styles.statLabel}>Reactors That Should Currently Be Removed From the Hallway Board</Text>
-          <Text style={styles.statValue}>{data.reactorsToRemove}</Text>
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Reactors That Should Currently Be Removed From the Hallway Board</Text>
+            <Text style={styles.statValue}>{data.reactorsToRemove}</Text>
+          </View>
+
+          <Text style={styles.sectionTitle}>Classrooms Not Fully Completed This Week</Text>
+          {data.incompleteTeachers.length === 0 ? (
+            <Text style={styles.emptyNote}>Every classroom completed every mission this week — great work, school-wide!</Text>
+          ) : (
+            <View>
+              <View style={styles.tableHeaderRow}>
+                <Text style={[styles.colTeacher, styles.headerText]}>Teacher / Class</Text>
+                <Text style={[styles.colDays, styles.headerText]}>Missed Day(s)</Text>
+              </View>
+              {data.incompleteTeachers.map((t, i) => (
+                <View style={styles.tableRow} key={i}>
+                  <Text style={styles.colTeacher}>{t.teacherName} — Grade {t.gradeLevel}{t.sectionLabel !== 'All Day' ? ` (${t.sectionLabel})` : ''}</Text>
+                  <Text style={styles.colDays}>{t.missedDays.join(', ')}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
-        <Text style={styles.sectionTitle}>Classrooms Not Fully Completed This Week</Text>
-        {data.incompleteTeachers.length === 0 ? (
-          <Text style={styles.emptyNote}>Every classroom completed every mission this week — great work, school-wide!</Text>
-        ) : (
-          <View>
-            <View style={styles.tableHeaderRow}>
-              <Text style={[styles.colTeacher, styles.headerText]}>Teacher / Class</Text>
-              <Text style={[styles.colDays, styles.headerText]}>Missed Day(s)</Text>
-            </View>
-            {data.incompleteTeachers.map((t, i) => (
-              <View style={styles.tableRow} key={i}>
-                <Text style={styles.colTeacher}>{t.teacherName} — Grade {t.gradeLevel}{t.sectionLabel !== 'All Day' ? ` (${t.sectionLabel})` : ''}</Text>
-                <Text style={styles.colDays}>{t.missedDays.join(', ')}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        <Text style={styles.footer}>Generated automatically by PSSA Mission Control · BBI Ventures</Text>
+        <Text style={styles.footer} fixed>Generated automatically by PSSA Mission Control · BBI Ventures</Text>
       </Page>
     </Document>
   )

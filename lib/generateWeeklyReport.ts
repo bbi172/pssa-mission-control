@@ -47,7 +47,12 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
 
   const totalSpacesMovedThisWeek = history.filter(h => h.moved).length
   const highestPctThisWeek = history.reduce((max, h) => Math.max(max, h.pct || 0), 0)
-  const highestPctAllYear = sections.reduce((max: number, s: any) => Math.max(max, s.best_pct || 0), 0)
+  const { data: allHistory } = await supabaseAdmin
+    .from('daily_history')
+    .select('pct')
+    .in('section_id', sectionIds)
+
+  const highestPctAllYear = (allHistory || []).reduce((max, h) => Math.max(max, h.pct || 0), 0)
   const reactorsToRemove = sections.reduce((sum: number, s: any) => sum + (s.laps || 0), 0)
 
   const daysInRange: number[] = []
