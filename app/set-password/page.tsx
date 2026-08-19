@@ -13,11 +13,19 @@ export default function SetPasswordPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    // Supabase's client automatically reads the invite token out of the
-    // URL and creates a session — we just wait a moment for that.
+    // Check immediately, in case the session is already there
     supabase.auth.getSession().then(({ data }) => {
-      setReady(!!data.session)
+      if (data.session) setReady(true)
     })
+
+    // Also listen for the session appearing asynchronously — this is what
+    // actually fires once Supabase finishes processing the invite link,
+    // which can happen a moment after the page first loads.
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) setReady(true)
+    })
+
+    return () => { listener.subscription.unsubscribe() }
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
