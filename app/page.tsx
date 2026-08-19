@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import '../marketing.css'
+import './marketing.css'
 
 export default function HomePage() {
   return (
