@@ -11,37 +11,23 @@ export default function SetPasswordPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [ready, setReady] = useState(false)
-  const [debugInfo, setDebugInfo] = useState('')
 
   useEffect(() => {
     async function establishSession() {
-      const rawHash = window.location.hash
-      const hash = rawHash.substring(1)
+      const hash = window.location.hash.substring(1)
       const params = new URLSearchParams(hash)
       const access_token = params.get('access_token')
       const refresh_token = params.get('refresh_token')
 
-      let log = `Raw URL hash length: ${rawHash.length}\n`
-      log += `Raw URL hash (first 60 chars): ${rawHash.substring(0, 60)}...\n`
-      log += `access_token found: ${access_token ? 'YES (' + access_token.substring(0, 20) + '...)' : 'NO'}\n`
-      log += `refresh_token found: ${refresh_token ? 'YES' : 'NO'}\n`
-
       if (access_token && refresh_token) {
         const { data: sessionData, error: sessionErr } = await supabase.auth.setSession({ access_token, refresh_token })
-        log += `setSession error: ${sessionErr ? JSON.stringify(sessionErr) : 'none'}\n`
-        log += `setSession returned a session: ${sessionData?.session ? 'YES' : 'NO'}\n`
         if (!sessionErr && sessionData?.session) {
-          setDebugInfo(log)
           setReady(true)
           return
         }
       }
 
-      const { data: fallbackData, error: fallbackErr } = await supabase.auth.getSession()
-      log += `Fallback getSession error: ${fallbackErr ? JSON.stringify(fallbackErr) : 'none'}\n`
-      log += `Fallback getSession found a session: ${fallbackData?.session ? 'YES' : 'NO'}\n`
-
-      setDebugInfo(log)
+      const { data: fallbackData } = await supabase.auth.getSession()
       if (fallbackData?.session) setReady(true)
     }
 
@@ -69,11 +55,6 @@ export default function SetPasswordPage() {
         <div className="panel">
           <h2>Setting Up Your Account...</h2>
           <p className="sub">If this doesn&apos;t finish in a few seconds, your invite link may have expired — ask your administrator to resend it.</p>
-          {debugInfo && (
-            <pre style={{ marginTop: 20, background: 'var(--void)', padding: 16, borderRadius: 8, fontSize: 12, whiteSpace: 'pre-wrap', color: 'var(--star)' }}>
-              {debugInfo}
-            </pre>
-          )}
         </div>
       </main>
     )
