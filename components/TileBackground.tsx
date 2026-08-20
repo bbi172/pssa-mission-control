@@ -1,47 +1,48 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-const COLS = 16
-const ROWS = 10
-const STEP_MS = 14
-const FLIP_MS = 550
-const HOLD_MS = 1400 // extra time to admire the finished space pattern before navigating
+const STAR_COUNT = 180
+const WARP_MS = 900
+const HOLD_MS = 500
 
-const NAVY_SHADES = {
-  top: '#1a2148',
-  right: '#141a36',
-  bottom: '#0a0e1f',
-  left: '#171f42',
+type Star = {
+  left: number   // percent
+  top: number    // percent
+  size: number
+  baseOpacity: number
+  angleDeg: number
+  twinkleDelay: number
 }
 
-const SPACE_PALETTES = [
-  { bg: '#0a0e1f', glow: 'rgba(139,111,240,0.45)' },  // nebula purple
-  { bg: '#0a0e1f', glow: 'rgba(79,209,197,0.4)' },     // thruster teal
-  { bg: '#0a0e1f', glow: 'rgba(242,166,90,0.35)' },    // solar amber
-  { bg: '#0a0e1f', glow: null },                        // plain dark, stars only
-]
-
 export default function TileBackground({ flip, onComplete }: { flip: boolean; onComplete?: () => void }) {
-  const tiles = useMemo(() => {
-    const arr: { r: number; c: number; delay: number; brightness: number }[] = []
-    const maxDist = (ROWS - 1) + (COLS - 1)
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const dist = r + c
-        // top-left tiles lighter, bottom-right tiles darker
-        const brightness = 1.35 - (dist / maxDist) * 0.75
-        arr.push({ r, c, delay: dist * STEP_MS, brightness })
-      }
+  const [flashOn, setFlashOn] = useState(false)
+
+  const stars = useMemo<Star[]>(() => {
+    const arr: Star[] = []
+    for (let i = 0; i < STAR_COUNT; i++) {
+      // deterministic pseudo-random spread (no Math.random, avoids hydration mismatches)
+      const left = (i * 53.7) % 100
+      const top = (i * 31.3 + i * i * 0.7) % 100
+      const size = 1 + ((i * 7) % 3) * 0.7
+      const baseOpacity = 0.35 + ((i * 13) % 60) / 100
+      const dx = left - 50
+      const dy = top - 50
+      const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI
+      const twinkleDelay = (i % 40) * 0.1
+      arr.push({ left, top, size, baseOpacity, angleDeg, twinkleDelay })
     }
     return arr
   }, [])
 
   useEffect(() => {
     if (!flip || !onComplete) return
-    const maxDelay = (ROWS - 1 + COLS - 1) * STEP_MS
-    const t = setTimeout(onComplete, maxDelay + FLIP_MS + HOLD_MS)
-    return () => clearTimeout(t)
+    const flashTimer = setTimeout(() => setFlashOn(true), WARP_MS * 0.55)
+    const doneTimer = setTimeout(onComplete, WARP_MS + HOLD_MS)
+    return () => {
+      clearTimeout(flashTimer)
+      clearTimeout(doneTimer)
+    }
   }, [flip, onComplete])
 
   return (
@@ -50,75 +51,50 @@ export default function TileBackground({ flip, onComplete }: { flip: boolean; on
         position: 'fixed',
         inset: 0,
         zIndex: 0,
-        display: 'grid',
-        gridTemplateColumns: `repeat(${COLS}, 1fr)`,
-        gridTemplateRows: `repeat(${ROWS}, 1fr)`,
-        perspective: 1200,
-        background: '#0a0e1f',
+        overflow: 'hidden',
+        background: 'radial-gradient(ellipse at 30% 20%, #151b3e 0%, #0a0e1f 65%)',
       }}
     >
-      {tiles.map(({ r, c, delay, brightness }) => {
-        const idx = r * COLS + c
-        const palette = SPACE_PALETTES[idx % SPACE_PALETTES.length]
-        const starCount = idx % 3 === 0 ? 2 : idx % 2 === 0 ? 1 : 0
+      {stars.map((s, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            left: `${s.left}%`,
+            top: `${s.top}%`,
+            width: flip ? 2 : s.size,
+            height: flip ? 2 : s.size,
+            borderRadius: '50%',
+            background: '#f2f0e8',
+            opacity: flip ? 0.95 : s.baseOpacity,
+            transformOrigin: 'left center',
+            transform: flip ? `rotate(${s.angleDeg}deg) scaleX(70)` : 'rotate(0deg) scaleX(1)',
+            transition: flip
+              ? `transform ${WARP_MS}ms cubic-bezier(.2,.7,.3,1), opacity ${WARP_MS * 0.5}ms ease`
+              : 'none',
+            animation: flip ? 'none' : `twinkle 3.5s ease-in-out ${s.twinkleDelay}s infinite`,
+          }}
+        />
+      ))}
 
-        return (
-          <div key={idx} style={{ position: 'relative' }}>
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                transformStyle: 'preserve-3d',
-                transition: `transform ${FLIP_MS}ms ease`,
-                transitionDelay: flip ? `${delay}ms` : '0ms',
-                transform: flip ? 'rotateY(180deg)' : 'rotateY(0deg)',
-              }}
-            >
-              {/* front face — dark, flat, 4-triangle pinwheel, lighter top-left to darker bottom-right */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0.5,
-                  backfaceVisibility: 'hidden',
-                  background: `conic-gradient(from 45deg, ${NAVY_SHADES.right} 0deg 90deg, ${NAVY_SHADES.bottom} 90deg 180deg, ${NAVY_SHADES.left} 180deg 270deg, ${NAVY_SHADES.top} 270deg 360deg)`,
-                  filter: `brightness(${brightness})`,
-                  borderRight: '1px solid rgba(0,0,0,0.3)',
-                  borderBottom: '1px solid rgba(0,0,0,0.3)',
-                }}
-              />
-              {/* back face — richer space pattern: nebula-tinted tiles + multiple colored stars */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0.5,
-                  backfaceVisibility: 'hidden',
-                  transform: 'rotateY(180deg)',
-                  background: palette.glow
-                    ? `radial-gradient(circle at 45% 40%, ${palette.glow}, ${palette.bg} 75%)`
-                    : palette.bg,
-                }}
-              >
-                {Array.from({ length: starCount }).map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      position: 'absolute',
-                      width: i === 0 ? 2.5 : 1.5,
-                      height: i === 0 ? 2.5 : 1.5,
-                      borderRadius: '50%',
-                      background: i === 0 ? '#f2f0e8' : palette.glow ? palette.glow.replace(/[\d.]+\)$/, '0.9)') : '#f2f0e8',
-                      opacity: 0.85,
-                      top: `${((r * 37 + c * 17 + i * 29) % 75) + 10}%`,
-                      left: `${((r * 23 + c * 41 + i * 19) % 75) + 10}%`,
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        )
-      })}
+      {/* brief white flash at the peak of the jump */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: '#f2f0e8',
+          opacity: flashOn ? 0.85 : 0,
+          transition: flashOn ? 'opacity 120ms ease-out' : `opacity ${HOLD_MS}ms ease-in`,
+          pointerEvents: 'none',
+        }}
+      />
+
+      <style>{`
+        @keyframes twinkle {
+          0%, 100% { opacity: var(--base-opacity, 0.4); }
+          50% { opacity: 1; }
+        }
+      `}</style>
     </div>
   )
 }
-
