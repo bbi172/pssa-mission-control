@@ -31,7 +31,7 @@ export default function ProductsPage() {
         <div className="content">
           <span className="eyebrow">Our Products</span>
           <h1>Tools that help teachers see real student growth.</h1>
-          <p>Our tools are simple and classroom-ready, built to help teachers save time and focus on what matters most. For K-12 classrooms, tools that improve student achievement — and reflect the hard work behind it.</p>
+          <p>Built on a classroom-tested approach refined over two decades. Our tools are simple and classroom-ready, built to help teachers save time and focus on what matters most. For K-12 classrooms, tools that improve student achievement — and reflect the hard work behind it.</p>
         </div>
       </main>
 
