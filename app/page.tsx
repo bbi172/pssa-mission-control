@@ -4,7 +4,7 @@ import './marketing.css'
 export default function HomePage() {
   return (
     <div className="marketing-site">
-      <div className="bg-graphic">
+      <div className="bg-graphic pos-top-right">
         <svg viewBox="0 0 820 820" xmlns="http://www.w3.org/2000/svg">
           <circle cx="620" cy="120" r="260" fill="#16233f" opacity="0.05"/>
           <circle cx="740" cy="300" r="170" fill="#7a1f2b" opacity="0.06"/>

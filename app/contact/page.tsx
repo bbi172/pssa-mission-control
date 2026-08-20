@@ -4,13 +4,14 @@ import '../marketing.css'
 export default function ContactPage() {
   return (
     <div className="marketing-site">
-      <div className="bg-graphic">
+      <div className="bg-graphic pos-bottom-right">
         <svg viewBox="0 0 820 820" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="700" cy="650" r="200" fill="#16233f" opacity="0.05"/>
-          <circle cx="600" cy="760" r="130" fill="#7a1f2b" opacity="0.06"/>
-          <path d="M 560 550 C 680 560, 760 660, 700 780" stroke="#16233f" strokeWidth="1.5" fill="none" opacity="0.1"/>
-          <circle cx="640" cy="500" r="3" fill="#7a1f2b" opacity="0.3"/>
-          <circle cx="760" cy="580" r="4" fill="#16233f" opacity="0.28"/>
+          <circle cx="620" cy="700" r="260" fill="#16233f" opacity="0.05"/>
+          <circle cx="740" cy="520" r="170" fill="#7a1f2b" opacity="0.06"/>
+          <path d="M 420 780 C 620 760, 780 600, 760 400" stroke="#16233f" strokeWidth="1.5" fill="none" opacity="0.12"/>
+          <circle cx="500" cy="340" r="4" fill="#7a1f2b" opacity="0.35"/>
+          <circle cx="650" cy="670" r="3" fill="#16233f" opacity="0.3"/>
+          <circle cx="700" cy="320" r="3" fill="#7a1f2b" opacity="0.25"/>
         </svg>
       </div>
 
