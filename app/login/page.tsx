@@ -17,24 +17,29 @@ export default function LoginPage() {
   const [resetLoading, setResetLoading] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
   const [mode, setMode] = useState<Mode>('login')
+  const [destination, setDestination] = useState('/mission')
   const router = useRouter()
 
   const handleTransitionComplete = useCallback(() => {
-    router.push('/mission')
-  }, [router])
+    router.push(destination)
+  }, [router, destination])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (authError) {
       setError(authError.message)
       setLoading(false)
       return
     }
+
+    // Admins land on the admin hub; teachers-only accounts go straight to Mission Day
+    const { data: adminRow } = await supabase.from('admins').select('id').eq('user_id', authData.user.id).maybeSingle()
+    setDestination(adminRow ? '/admin' : '/mission')
 
     setLoading(false)
     setTransitioning(true)
