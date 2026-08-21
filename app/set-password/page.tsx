@@ -46,7 +46,12 @@ export default function SetPasswordPage() {
     setLoading(false)
 
     if (updateErr) { setError(updateErr.message); return }
-    router.push('/mission')
+
+    // Admins land on the admin hub; teachers-only accounts go to Mission Day
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+    const { data: adminRow } = await supabase.from('admins').select('id').eq('user_id', currentUser?.id).maybeSingle()
+
+    router.push(adminRow ? '/admin' : '/mission')
   }
 
   if (!ready) {
