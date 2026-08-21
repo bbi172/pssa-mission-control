@@ -22,12 +22,25 @@ export async function POST(req: NextRequest) {
 
   const { data: admin } = await callerClient
     .from('admins')
-    .select('school_id')
+    .select('role, school_id, district_id')
     .eq('user_id', user.id)
     .single()
 
-  if (!admin || admin.school_id !== schoolId) {
-    return NextResponse.json({ error: 'Not authorized for this school' }, { status: 403 })
+  if (!admin) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+  }
+
+  // School Administrators may only act on their own exact school.
+  // Owner and District Administrator may act on any school in their district.
+  if (admin.role === 'school_admin') {
+    if (admin.school_id !== schoolId) {
+      return NextResponse.json({ error: 'Not authorized for this school' }, { status: 403 })
+    }
+  } else {
+    const { data: targetSchool } = await callerClient.from('schools').select('id').eq('id', schoolId).single()
+    if (!targetSchool) {
+      return NextResponse.json({ error: 'Not authorized for this school' }, { status: 403 })
+    }
   }
 
   try {

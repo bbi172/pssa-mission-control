@@ -22,8 +22,8 @@ export default function AdminVideosPage() {
   async function checkAccess() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
-    const { data: admin } = await supabase.from('admins').select('id').eq('user_id', user.id).single()
-    setAuthorized(!!admin)
+    const { data: admin } = await supabase.from('admins').select('role').eq('user_id', user.id).single()
+    setAuthorized(admin?.role === 'owner')
   }
 
   function handleSelect(e: React.ChangeEvent<HTMLInputElement>) {

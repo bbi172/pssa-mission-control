@@ -5,14 +5,17 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
 type Closure = { day_number: number; reason: string }
+type School = { id: string; name: string; current_day_index: number }
 
 export default function AdminCalendarPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [schoolId, setSchoolId] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const [role, setRole] = useState('')
+  const [schools, setSchools] = useState<School[]>([])
+  const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const [currentDay, setCurrentDay] = useState(0)
   const [closures, setClosures] = useState<Closure[]>([])
-  const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -23,36 +26,52 @@ export default function AdminCalendarPage() {
     if (!user) { router.push('/login'); return }
 
     const { data: admin, error: adminErr } = await supabase
-      .from('admins').select('school_id').eq('user_id', user.id).single()
+      .from('admins').select('role, school_id, district_id').eq('user_id', user.id).single()
 
-    if (adminErr || !admin || !admin.school_id) {
-      setError('This admin account is not linked to a specific school yet.')
+    if (adminErr || !admin) {
+      setError('This account is not an administrator.')
       setLoading(false)
       return
     }
+    setRole(admin.role)
 
-    setSchoolId(admin.school_id)
-
-    const { data: school, error: schoolErr } = await supabase
-      .from('schools').select('current_day_index').eq('id', admin.school_id).single()
-
-    if (schoolErr || !school) {
-      setError('Could not load school settings.')
-      setLoading(false)
-      return
+    let schoolList: School[] = []
+    if (admin.role === 'school_admin') {
+      if (!admin.school_id) { setError('This admin account is not linked to a specific school yet.'); setLoading(false); return }
+      const { data: s } = await supabase.from('schools').select('id, name, current_day_index').eq('id', admin.school_id).single()
+      if (s) schoolList = [s]
+    } else {
+      const { data: s } = await supabase.from('schools').select('id, name, current_day_index').eq('district_id', admin.district_id)
+      schoolList = s || []
     }
 
-    setCurrentDay(school.current_day_index)
+    if (schoolList.length === 0) { setError('No schools found.'); setLoading(false); return }
 
-    const { data: closureRows } = await supabase
-      .from('school_closures').select('day_number, reason').eq('school_id', admin.school_id).order('day_number')
-
-    setClosures(closureRows || [])
+    setSchools(schoolList)
+    const firstId = admin.school_id || schoolList[0].id
+    setSelectedSchoolId(firstId)
+    await loadSchoolDetails(firstId, schoolList)
     setLoading(false)
   }
 
+  async function loadSchoolDetails(schoolId: string, schoolList?: School[]) {
+    const list = schoolList || schools
+    const match = list.find(s => s.id === schoolId)
+    setCurrentDay(match?.current_day_index || 0)
+
+    const { data: closureRows } = await supabase
+      .from('school_closures').select('day_number, reason').eq('school_id', schoolId).order('day_number')
+    setClosures(closureRows || [])
+  }
+
+  function handleSchoolChange(id: string) {
+    setSelectedSchoolId(id)
+    setMessage('')
+    loadSchoolDetails(id)
+  }
+
   async function runAdvance(isClosure: boolean) {
-    if (!schoolId) return
+    if (!selectedSchoolId) return
     setBusy(true)
     setMessage('')
 
@@ -62,20 +81,12 @@ export default function AdminCalendarPage() {
     const res = await fetch('/api/advance-day', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        schoolId,
-        isClosure,
-        reason: 'School Closed',
-        accessToken: session.access_token,
-      }),
+      body: JSON.stringify({ schoolId: selectedSchoolId, isClosure, reason: 'School Closed', accessToken: session.access_token }),
     })
     const result = await res.json()
     setBusy(false)
 
-    if (result.error) {
-      setMessage(`Error: ${result.error}`)
-      return
-    }
+    if (result.error) { setMessage(`Error: ${result.error}`); return }
 
     setMessage(isClosure
       ? `❄ Day ${result.newDayNumber - 1} marked closed — no penalties recorded. Now on Day ${result.newDayNumber}.`
@@ -87,13 +98,26 @@ export default function AdminCalendarPage() {
   if (loading) return <main className="app"><p style={{ color: 'var(--star-dim)' }}>Loading...</p></main>
   if (error) return <main className="app"><div className="panel"><h2>{error}</h2></div></main>
 
+  const selectedSchool = schools.find(s => s.id === selectedSchoolId)
+
   return (
     <main className="app">
       <div className="panel">
         <span className="eyebrow">Section 1 · School Calendar</span>
         <h2>School Calendar</h2>
+
+        {schools.length > 1 && (
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--star-dim)', marginBottom: 8 }}>School</label>
+            <select value={selectedSchoolId} onChange={e => handleSchoolChange(e.target.value)}
+              style={{ width: '100%', padding: 12, background: 'var(--void)', border: '1px solid var(--panel-edge)', borderRadius: 10, color: 'var(--star)', fontSize: 15 }}>
+              {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+        )}
+
         <p className="sub">
-          Currently on <strong style={{ color: 'var(--thruster)' }}>Mission Day {currentDay + 1}</strong>.
+          <strong>{selectedSchool?.name}</strong> is currently on <strong style={{ color: 'var(--thruster)' }}>Mission Day {currentDay + 1}</strong>.
           If school is closed today, mark it below — no teacher is penalized and no data is recorded for a closed day.
         </p>
 
@@ -105,7 +129,7 @@ export default function AdminCalendarPage() {
 
         <button className="btn btn-ghost btn-full" disabled={busy} style={{ marginBottom: 18, fontSize: 13 }}
           onClick={() => runAdvance(false)}>
-          ▶ Advance to Next Day (auto-marks incomplete classes)
+          ▶ Advance to Next Day {schools.length > 1 ? '(for this school only)' : '(auto-marks incomplete classes)'}
         </button>
 
         {message && <p style={{ fontSize: 14, marginBottom: 18, color: 'var(--star)' }}>{message}</p>}

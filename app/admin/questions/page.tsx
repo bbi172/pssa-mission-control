@@ -9,7 +9,6 @@ const GRADE_SHEETS: Record<string, number> = {
   'Grade 3': 3,
   'Grade 4': 4,
   'Grade 5': 5,
-  'Training': 0,
 }
 
 type ParsedRow = {
@@ -47,7 +46,7 @@ export default function UploadQuestionsPage() {
       .eq('user_id', user.id)
       .single()
 
-    setAuthorized(admin?.role === 'district_admin')
+    setAuthorized(admin?.role === 'owner')
   }
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {

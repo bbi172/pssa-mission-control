@@ -20,9 +20,14 @@ export default function StartNewYearPage() {
     if (!user) { router.push('/login'); return }
 
     const { data: admin, error: adminErr } = await supabase
-      .from('admins').select('school_id').eq('user_id', user.id).single()
+      .from('admins').select('role, school_id').eq('user_id', user.id).single()
 
-    if (adminErr || !admin || !admin.school_id) {
+    if (adminErr || !admin || (admin.role !== 'owner' && admin.role !== 'district_admin')) {
+      setError('This tool is only available to an Owner or District Administrator.')
+      setLoading(false)
+      return
+    }
+    if (!admin.school_id) {
       setError('This admin account is not linked to a specific school yet.')
       setLoading(false)
       return

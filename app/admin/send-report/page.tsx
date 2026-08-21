@@ -17,8 +17,13 @@ export default function SendReportPage() {
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
-    const { data: admin, error: adminErr } = await supabase.from('admins').select('school_id').eq('user_id', user.id).single()
-    if (adminErr || !admin || !admin.school_id) {
+    const { data: admin, error: adminErr } = await supabase.from('admins').select('role, school_id').eq('user_id', user.id).single()
+    if (adminErr || !admin || (admin.role !== 'owner' && admin.role !== 'district_admin')) {
+      setError('This tool is only available to an Owner or District Administrator.')
+      setLoading(false)
+      return
+    }
+    if (!admin.school_id) {
       setError('This admin account is not linked to a specific school yet.')
       setLoading(false)
       return
@@ -35,23 +40,36 @@ export default function SendReportPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { setSending(false); return }
 
-    const res = await fetch('/api/send-report-now', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ schoolId, accessToken: session.access_token }),
-    })
-    const data = await res.json()
-    setSending(false)
+    try {
+      const res = await fetch('/api/send-report-now', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schoolId, accessToken: session.access_token }),
+      })
 
-    if (data.error) {
-      setResult(`Error: ${data.error}`)
-      return
+      if (!res.ok) {
+        const text = await res.text()
+        setResult(`Error: server returned ${res.status}. ${text.substring(0, 200)}`)
+        setSending(false)
+        return
+      }
+
+      const data = await res.json()
+      setSending(false)
+
+      if (data.error) {
+        setResult(`Error: ${data.error}`)
+        return
+      }
+      if (!data.sent) {
+        setResult(`⚠ ${data.reason}`)
+        return
+      }
+      setResult(`✅ Sent to ${data.recipientCount} administrator(s). Highest score this week: ${data.reportData.highestPctThisWeek}%.`)
+    } catch (e: any) {
+      setSending(false)
+      setResult(`Error: request failed — ${e.message}`)
     }
-    if (!data.sent) {
-      setResult(`⚠ ${data.reason}`)
-      return
-    }
-    setResult(`✅ Sent to ${data.recipientCount} administrator(s). Highest score this week: ${data.reportData.highestPctThisWeek}%.`)
   }
 
   if (loading) return <main className="app"><p style={{ color: 'var(--star-dim)' }}>Loading...</p></main>
