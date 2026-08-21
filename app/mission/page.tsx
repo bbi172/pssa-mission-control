@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
 type Section = {
@@ -45,6 +46,7 @@ export default function MissionPage() {
   const [question, setQuestion] = useState<Question | null>(null)
   const [alreadyDone, setAlreadyDone] = useState(false)
   const [error, setError] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const [step, setStep] = useState<Step>('intro')
   const [tally, setTally] = useState({ A: 0, B: 0, C: 0, D: 0, NA: 0 })
@@ -64,6 +66,9 @@ export default function MissionPage() {
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
+
+    const { data: adminRow } = await supabase.from('admins').select('id').eq('user_id', user.id).maybeSingle()
+    setIsAdmin(!!adminRow)
 
     const { data: teacher, error: tErr } = await supabase
       .from('teachers').select('*').eq('user_id', user.id).single()
@@ -253,6 +258,11 @@ export default function MissionPage() {
             <span className="banner-title">ONE MISSION PER DAY</span>
             Today&apos;s answers are already locked in. Come back tomorrow for the next mission.
           </div>
+          {isAdmin && (
+            <Link href="/admin/calendar" style={{ display: 'block', textAlign: 'center', marginTop: 16, color: 'var(--thruster)', fontSize: 13.5, textDecoration: 'underline' }}>
+              → Admin Calendar (advance to the next day)
+            </Link>
+          )}
         </div>
       </main>
     )
@@ -271,6 +281,11 @@ export default function MissionPage() {
           </div>
           {boardTrack(selectedSection?.board_pos || 0, selectedSection?.laps || 0)}
           <button className="btn btn-primary btn-full" onClick={() => setStep('question')}>Begin Today&apos;s Mission →</button>
+          {isAdmin && (
+            <Link href="/admin/calendar" style={{ display: 'block', textAlign: 'center', marginTop: 14, color: 'var(--star-dim)', fontSize: 12.5, textDecoration: 'underline' }}>
+              → Admin Calendar
+            </Link>
+          )}
         </div>
       </main>
     )

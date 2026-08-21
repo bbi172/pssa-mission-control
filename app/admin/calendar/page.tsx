@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
 type Closure = { day_number: number; reason: string }
@@ -133,6 +134,10 @@ export default function AdminCalendarPage() {
         </button>
 
         {message && <p style={{ fontSize: 14, marginBottom: 18, color: 'var(--star)' }}>{message}</p>}
+
+        <Link href="/mission" style={{ display: 'block', textAlign: 'center', marginBottom: 20, color: 'var(--thruster)', fontSize: 13.5, textDecoration: 'underline' }}>
+          → Go do today&apos;s Mission Day now
+        </Link>
 
         <div>
           {closures.length === 0
