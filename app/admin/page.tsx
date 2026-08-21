@@ -16,6 +16,7 @@ const ROLE_LABELS: Record<string, string> = {
 export default function AdminHomePage() {
   const router = useRouter()
   const [admin, setAdmin] = useState<AdminInfo | null>(null)
+  const [isAlsoTeacher, setIsAlsoTeacher] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => { load() }, [])
@@ -30,6 +31,9 @@ export default function AdminHomePage() {
       router.push('/mission')
       return
     }
+
+    const { data: teacherRow } = await supabase.from('teachers').select('id').eq('user_id', user.id).maybeSingle()
+    setIsAlsoTeacher(!!teacherRow)
 
     setAdmin({ name: data.name, role: data.role, schoolId: data.school_id })
     setLoading(false)
@@ -102,11 +106,13 @@ export default function AdminHomePage() {
           </>
         )}
 
-        <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--panel-edge)' }}>
-          <Link href="/mission" style={{ color: 'var(--thruster)', fontSize: 13.5, textDecoration: 'underline' }}>
-            → Go to the teacher Mission Day screen instead
-          </Link>
-        </div>
+        {isAlsoTeacher && (
+          <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--panel-edge)' }}>
+            <Link href="/mission" style={{ color: 'var(--thruster)', fontSize: 13.5, textDecoration: 'underline' }}>
+              → Go to the teacher Mission Day screen instead
+            </Link>
+          </div>
+        )}
       </div>
     </main>
   )
