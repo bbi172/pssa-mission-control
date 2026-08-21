@@ -14,6 +14,7 @@ export default function AdminCalendarPage() {
   const [error, setError] = useState('')
   const [role, setRole] = useState('')
   const [isAlsoTeacher, setIsAlsoTeacher] = useState(false)
+  const [ownTeacherSchoolId, setOwnTeacherSchoolId] = useState<string | null>(null)
   const [schools, setSchools] = useState<School[]>([])
   const [selectedSchoolId, setSelectedSchoolId] = useState('')
   const [currentDay, setCurrentDay] = useState(0)
@@ -37,8 +38,9 @@ export default function AdminCalendarPage() {
     }
     setRole(admin.role)
 
-    const { data: teacherRow } = await supabase.from('teachers').select('id').eq('user_id', user.id).maybeSingle()
+    const { data: teacherRow } = await supabase.from('teachers').select('id, school_id').eq('user_id', user.id).maybeSingle()
     setIsAlsoTeacher(!!teacherRow)
+    setOwnTeacherSchoolId(teacherRow?.school_id || null)
 
     let schoolList: School[] = []
     if (admin.role === 'school_admin') {
@@ -145,9 +147,9 @@ export default function AdminCalendarPage() {
 
         {message && <p style={{ fontSize: 14, marginBottom: 18, color: 'var(--star)' }}>{message}</p>}
 
-        {isAlsoTeacher && (
+        {isAlsoTeacher && ownTeacherSchoolId === selectedSchoolId && (
           <Link href="/mission" style={{ display: 'block', textAlign: 'center', marginBottom: 20, color: 'var(--thruster)', fontSize: 13.5, textDecoration: 'underline' }}>
-            → Go do today&apos;s Mission Day now
+            → Go do today&apos;s Mission Day now (your own class)
           </Link>
         )}
 
