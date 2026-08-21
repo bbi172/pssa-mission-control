@@ -53,7 +53,12 @@ export default function AdminCalendarPage() {
     if (schoolList.length === 0) { setError('No schools found.'); setLoading(false); return }
 
     setSchools(schoolList)
-    const firstId = admin.school_id || schoolList[0].id
+    // Remember whichever school was last selected, so it survives
+    // navigating away (e.g. to /mission) and back — otherwise it always
+    // silently resets to your own linked school.
+    const remembered = typeof window !== 'undefined' ? localStorage.getItem('lastSelectedSchoolId') : null
+    const rememberedIsValid = remembered && schoolList.some(s => s.id === remembered)
+    const firstId = rememberedIsValid ? remembered! : (admin.school_id || schoolList[0].id)
     setSelectedSchoolId(firstId)
     await loadSchoolDetails(firstId, schoolList)
     setLoading(false)
@@ -71,6 +76,7 @@ export default function AdminCalendarPage() {
 
   function handleSchoolChange(id: string) {
     setSelectedSchoolId(id)
+    if (typeof window !== 'undefined') localStorage.setItem('lastSelectedSchoolId', id)
     setMessage('')
     loadSchoolDetails(id)
   }
