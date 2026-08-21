@@ -9,6 +9,7 @@ const GRADE_SHEETS: Record<string, number> = {
   'Grade 3': 3,
   'Grade 4': 4,
   'Grade 5': 5,
+  'Training': 0,
 }
 
 type ParsedRow = {
