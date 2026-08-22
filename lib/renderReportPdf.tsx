@@ -35,12 +35,16 @@ function ReportDocument({ data }: { data: WeeklyReportData }) {
 
         <View style={styles.statGrid}>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Game Piece Spaces Moved This Week</Text>
-            <Text style={styles.statValue}>{data.totalSpacesMovedThisWeek}</Text>
+            <Text style={styles.statLabel}>Participation Rate This Week</Text>
+            <Text style={styles.statValue}>{data.participationRate}%</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>School Goal</Text>
-            <Text style={styles.statValue}>{data.schoolGoal}%</Text>
+            <Text style={styles.statLabel}>Classrooms Meeting Goal This Week</Text>
+            <Text style={styles.statValue}>{data.classroomsMeetingGoalThisWeek} of {data.totalClassrooms}</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Average Score This Week</Text>
+            <Text style={styles.statValue}>{data.averagePctThisWeek}%</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Highest Score This Week</Text>
@@ -49,6 +53,14 @@ function ReportDocument({ data }: { data: WeeklyReportData }) {
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Highest Score So Far This Year</Text>
             <Text style={styles.statValue}>{data.highestPctAllYear}%</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Game Piece Spaces Moved This Week</Text>
+            <Text style={styles.statValue}>{data.totalSpacesMovedThisWeek}</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>School Goal</Text>
+            <Text style={styles.statValue}>{data.schoolGoal}%</Text>
           </View>
         </View>
 

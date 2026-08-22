@@ -7,8 +7,14 @@ export type WeeklyReportData = {
   weekEndDay: number
   totalSpacesMovedThisWeek: number
   highestPctThisWeek: number
+  averagePctThisWeek: number
   highestPctAllYear: number
   reactorsToRemove: number
+  totalClassrooms: number
+  classroomsMeetingGoalThisWeek: number
+  possibleSubmissions: number
+  actualSubmissions: number
+  participationRate: number
   incompleteTeachers: { teacherName: string; gradeLevel: number; sectionLabel: string; missedDays: number[] }[]
 }
 
@@ -47,6 +53,12 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
 
   const totalSpacesMovedThisWeek = history.filter(h => h.moved).length
   const highestPctThisWeek = history.reduce((max, h) => Math.max(max, h.pct || 0), 0)
+
+  const scoredEntriesThisWeek = history.filter(h => !h.missed && h.pct !== null)
+  const averagePctThisWeek = scoredEntriesThisWeek.length > 0
+    ? Math.round(scoredEntriesThisWeek.reduce((sum, h) => sum + (h.pct || 0), 0) / scoredEntriesThisWeek.length)
+    : 0
+
   const { data: allHistory } = await supabaseAdmin
     .from('daily_history')
     .select('pct')
@@ -55,8 +67,19 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
   const highestPctAllYear = (allHistory || []).reduce((max, h) => Math.max(max, h.pct || 0), 0)
   const reactorsToRemove = sections.reduce((sum: number, s: any) => sum + (s.laps || 0), 0)
 
+  const totalClassrooms = sections.length
+
   const daysInRange: number[] = []
   for (let d = weekStartDay; d <= weekEndDay; d++) daysInRange.push(d)
+
+  const possibleSubmissions = totalClassrooms * daysInRange.length
+  const actualSubmissions = scoredEntriesThisWeek.length
+  const participationRate = possibleSubmissions > 0 ? Math.round((actualSubmissions / possibleSubmissions) * 100) : 0
+
+  // How many distinct classrooms hit the goal on at least one day this week
+  const classroomsMeetingGoalThisWeek = new Set(
+    history.filter(h => !h.missed && (h.pct || 0) >= school.school_goal_pct).map(h => h.section_id)
+  ).size
 
   const incompleteTeachers: WeeklyReportData['incompleteTeachers'] = []
   for (const s of sections as any[]) {
@@ -82,8 +105,14 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
     weekEndDay,
     totalSpacesMovedThisWeek,
     highestPctThisWeek,
+    averagePctThisWeek,
     highestPctAllYear,
     reactorsToRemove,
+    totalClassrooms,
+    classroomsMeetingGoalThisWeek,
+    possibleSubmissions,
+    actualSubmissions,
+    participationRate,
     incompleteTeachers,
   }
 }
