@@ -344,8 +344,8 @@ export default function MissionPage() {
       <main className="app">
         <div className="panel">
           <span className="eyebrow">Day {question?.day_number} · Step 3 of 3</span>
-          <h2>Mission Briefing: The Correct Answer</h2>
-          <p className="sub">The correct answer was {question?.correct_answer}.</p>
+          <h2>Mission Briefing</h2>
+          <p className="sub">Watch the video to learn today's correct answer and the strategy behind it.</p>
           <div style={{ aspectRatio: '16/9', borderRadius: 12, background: 'linear-gradient(135deg, #1c2452, #0d1130)', border: '1px solid var(--panel-edge)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22, color: 'var(--star-dim)', fontSize: 13 }}>
             {question?.video_url ? <video src={question.video_url} controls style={{ width: '100%', height: '100%' }} /> : 'No video uploaded yet for this question'}
           </div>
