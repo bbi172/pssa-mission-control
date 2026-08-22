@@ -268,11 +268,6 @@ export default function MissionPage() {
             <span className="banner-title">ONE MISSION PER DAY</span>
             Today&apos;s answers are already locked in. Come back tomorrow for the next mission.
           </div>
-          {isAdmin && (
-            <Link href="/admin/calendar" style={{ display: 'block', textAlign: 'center', marginTop: 16, color: 'var(--thruster)', fontSize: 13.5, textDecoration: 'underline' }}>
-              → Admin Calendar (advance to the next day)
-            </Link>
-          )}
         </div>
       </main>
     )
@@ -291,11 +286,6 @@ export default function MissionPage() {
           </div>
           {boardTrack(selectedSection?.board_pos || 0, selectedSection?.laps || 0)}
           <button className="btn btn-primary btn-full" onClick={() => setStep('question')}>Begin Today&apos;s Mission →</button>
-          {isAdmin && (
-            <Link href="/admin/calendar" style={{ display: 'block', textAlign: 'center', marginTop: 14, color: 'var(--star-dim)', fontSize: 12.5, textDecoration: 'underline' }}>
-              → Admin Calendar
-            </Link>
-          )}
         </div>
       </main>
     )
