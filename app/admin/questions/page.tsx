@@ -65,7 +65,7 @@ export default function UploadQuestionsPage() {
       for (const sheetName of Object.keys(GRADE_SHEETS)) {
         const sheet = workbook.Sheets[sheetName]
         if (!sheet) continue
-        const json: any[] = XLSX.utils.sheet_to_json(sheet)
+        const json: any[] = XLSX.utils.sheet_to_json(sheet, { raw: false })
         for (const r of json) {
           if (!r.day_number || !r.question_text) continue
           parsed.push({
