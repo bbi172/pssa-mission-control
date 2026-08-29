@@ -46,7 +46,7 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
   // skew real classroom statistics with test data).
   const { data: adminRows } = await supabaseAdmin.from('admins').select('user_id')
   const adminUserIds = new Set((adminRows || []).map(a => a.user_id))
-  const realSections = (realSections as any[]).filter(s => !adminUserIds.has(s.teachers?.user_id))
+  const realSections = (sections as any[]).filter(s => !adminUserIds.has(s.teachers?.user_id))
 
   const sectionIds = realSections.map(s => s.id)
 
@@ -83,7 +83,7 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
   const gradeLevels = Array.from(new Set((realSections as any[]).map(s => s.teachers?.grade_level).filter(g => g !== undefined)))
   const topPerformerByGrade: WeeklyReportData['topPerformerByGrade'] = []
   for (const gl of gradeLevels) {
-    const sectionsInGrade = (realSections as any[]).filter(s => s.teachers?.grade_level === gl)
+    const sectionsInGrade = (realSections as any[]).filter((s: any) => s.teachers?.grade_level === gl)
     let topAvg = -1
     let topSection: any = null
     for (const s of sectionsInGrade) {
