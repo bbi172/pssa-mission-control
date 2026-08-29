@@ -15,7 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div style={{ animation: 'fadeInPage 550ms ease' }}>
+    <div>
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {!isDashboard ? (
           <Link
@@ -41,12 +41,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </button>
       </div>
       {children}
-      <style>{`
-        @keyframes fadeInPage {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-      `}</style>
     </div>
   )
 }
