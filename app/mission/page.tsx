@@ -47,6 +47,7 @@ export default function MissionPage() {
   const [alreadyDone, setAlreadyDone] = useState(false)
   const [error, setError] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+  const [classAverage, setClassAverage] = useState(0)
 
   const [step, setStep] = useState<Step>('intro')
   const [tally, setTally] = useState({ A: 0, B: 0, C: 0, D: 0, NA: 0 })
@@ -58,7 +59,7 @@ export default function MissionPage() {
   const [grew, setGrew] = useState(false)
   const [metGoal, setMetGoal] = useState(false)
   const [moved, setMoved] = useState(false)
-  const [matchedBest, setMatchedBest] = useState(false)
+  const [isNewRecord, setIsNewRecord] = useState(false)
   const [reachedStar, setReachedStar] = useState(false)
 
   useEffect(() => { load() }, [])
@@ -136,6 +137,19 @@ export default function MissionPage() {
         .from('daily_history').select('*').eq('section_id', section.id).eq('day_number', q.day_number).maybeSingle()
 
       setAlreadyDone(!!existing && !existing.missed)
+
+      // Class average, from every prior scored day — this is the real
+      // "growth" benchmark now, since a fixed best-score ceiling (100%)
+      // would otherwise make growth permanently impossible once hit.
+      const { data: priorHistory } = await supabase
+        .from('daily_history').select('pct').eq('section_id', section.id).eq('missed', false)
+
+      const scoredPriorDays = (priorHistory || []).filter(h => h.pct !== null)
+      const avg = scoredPriorDays.length > 0
+        ? Math.round(scoredPriorDays.reduce((sum, h) => sum + (h.pct || 0), 0) / scoredPriorDays.length)
+        : 0
+      setClassAverage(avg)
+
       setStep('intro')
       setLoading(false)
     } catch (e: any) {
@@ -158,11 +172,11 @@ export default function MissionPage() {
 
     const p = calcPct(tally, question.correct_answer)
     const best = selectedSection.best_pct
-    const didGrow = p > best
+    const didGrow = p > classAverage
     const didMeetGoal = p >= school.school_goal_pct
     const didMove = didGrow || didMeetGoal
     const newBest = Math.max(p, best)
-    const didMatch = p === best && !didGrow && p > 0
+    const isNewRecord = p > best
 
     let newBoardPos = selectedSection.board_pos
     let newLaps = selectedSection.laps
@@ -213,7 +227,7 @@ export default function MissionPage() {
     setGrew(didGrow)
     setMetGoal(didMeetGoal)
     setMoved(didMove)
-    setMatchedBest(didMatch)
+    setIsNewRecord(isNewRecord)
     setReachedStar(hitStar)
     setSubmitting(false)
     setStep('video')
@@ -281,6 +295,7 @@ export default function MissionPage() {
           <h2>Mission Day {question?.day_number}</h2>
           <p className="sub">Here&apos;s where your crew stands before today&apos;s launch.</p>
           <div className="stat-grid">
+            <div className="stat-card"><div className="label">Class Average</div><div className="value good">{classAverage}%</div></div>
             <div className="stat-card"><div className="label">Best Score This Year</div><div className="value good">{selectedSection?.best_pct}%</div></div>
             <div className="stat-card"><div className="label">Today&apos;s Target Goal</div><div className="value warn">{school?.school_goal_pct}%</div></div>
           </div>
@@ -366,27 +381,24 @@ export default function MissionPage() {
           <div className="banner success">
             <span className="banner-title">🚀 GREAT WORK, CREW!</span>
             {grew && metGoal
-              ? `Your crew beat its best score (up from ${oldBest}% to ${pct}%) AND held the school goal!`
+              ? `Your crew scored above its own average (average was ${classAverage}%, today was ${pct}%) AND held the school goal!`
               : grew
-              ? `Your crew just beat its all-time best score — up from ${oldBest}% to ${pct}%!`
+              ? `Your crew scored above its own average today — average was ${classAverage}%, today was ${pct}%!`
               : 'Your crew held strong at or above the school goal!'}{' '}
             Move your game piece today!
-          </div>
-        ) : matchedBest ? (
-          <div className="banner encourage">
-            <span className="banner-title">💪 SO CLOSE!</span>
-            Your crew matched its personal best of {oldBest}%! You have to go one step further and beat that score, or reach the school goal of {school?.school_goal_pct}%.
+            {isNewRecord && <span> 🎉 That&apos;s also a brand-new personal best!</span>}
           </div>
         ) : (
           <div className="banner encourage">
             <span className="banner-title">💪 KEEP GOING, CREW!</span>
-            To move your game piece, your class needs to either beat its best score of {oldBest}% or reach the school goal of {school?.school_goal_pct}%. Get ready to try again tomorrow.
+            To move your game piece, your class needs to either score above its own average of {classAverage}% or reach the school goal of {school?.school_goal_pct}%. Get ready to try again tomorrow.
           </div>
         )}
 
         <div className="stat-grid">
           <div className="stat-card"><div className="label">Today&apos;s Score</div><div className="value">{pct}%</div></div>
-          <div className="stat-card"><div className="label">Best This Year{grew ? ' 🎉' : ''}</div><div className="value good">{selectedSection?.best_pct}%</div></div>
+          <div className="stat-card"><div className="label">Class Average</div><div className="value warn">{classAverage}%</div></div>
+          <div className="stat-card"><div className="label">Best This Year{isNewRecord ? ' 🎉' : ''}</div><div className="value good">{selectedSection?.best_pct}%</div></div>
         </div>
 
         {boardTrack(selectedSection?.board_pos || 0, selectedSection?.laps || 0)}
