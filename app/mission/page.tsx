@@ -19,6 +19,7 @@ type SchoolInfo = {
   id: string
   school_goal_pct: number
   current_day_index: number
+  competition_mode: boolean
 }
 
 type Question = {
@@ -48,6 +49,8 @@ export default function MissionPage() {
   const [error, setError] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [classAverage, setClassAverage] = useState(0)
+  const [gradeLeaderAvg, setGradeLeaderAvg] = useState<number | null>(null)
+  const [gradeLeaderName, setGradeLeaderName] = useState<string | null>(null)
 
   const [step, setStep] = useState<Step>('intro')
   const [tally, setTally] = useState({ A: 0, B: 0, C: 0, D: 0, NA: 0 })
@@ -113,7 +116,7 @@ export default function MissionPage() {
       setSelectedSection(section)
 
       const { data: schoolData, error: schErr } = await supabase
-        .from('schools').select('id, school_goal_pct, current_day_index').eq('id', section.school_id).single()
+        .from('schools').select('id, school_goal_pct, current_day_index, competition_mode').eq('id', section.school_id).single()
 
       if (schErr || !schoolData) {
         setError('Could not load school settings.')
@@ -121,6 +124,31 @@ export default function MissionPage() {
         return
       }
       setSchool(schoolData)
+
+      if (schoolData.competition_mode) {
+        const { data: gradeSections } = await supabase
+          .from('sections')
+          .select('id, teachers!inner(name, grade_level)')
+          .eq('school_id', section.school_id)
+          .eq('teachers.grade_level', grade)
+
+        if (gradeSections && gradeSections.length > 0) {
+          const sectionIds = gradeSections.map((s: any) => s.id)
+          const { data: gradeHistory } = await supabase
+            .from('daily_history').select('section_id, pct').in('section_id', sectionIds).eq('missed', false)
+
+          let topAvg = -1
+          let topSectionId: string | null = null
+          for (const sid of sectionIds) {
+            const entries = (gradeHistory || []).filter(h => h.section_id === sid && h.pct !== null)
+            const avg = entries.length > 0 ? Math.round(entries.reduce((sum, h) => sum + (h.pct || 0), 0) / entries.length) : 0
+            if (avg > topAvg) { topAvg = avg; topSectionId = sid }
+          }
+          const topSection: any = gradeSections.find((s: any) => s.id === topSectionId)
+          setGradeLeaderAvg(topAvg >= 0 ? topAvg : null)
+          setGradeLeaderName(topSection?.teachers?.name || null)
+        }
+      }
 
       const todaysDayNumber = schoolData.current_day_index + 1
 
@@ -305,6 +333,13 @@ export default function MissionPage() {
             <div className="stat-card"><div className="label">Class Average</div><div className="value good">{classAverage}%</div></div>
             <div className="stat-card"><div className="label">Best Score This Year</div><div className="value good">{selectedSection?.best_pct}%</div></div>
             <div className="stat-card"><div className="label">Today&apos;s Target Goal</div><div className="value warn">{school?.school_goal_pct}%</div></div>
+            {school?.competition_mode && gradeLeaderAvg !== null && (
+              <div className="stat-card">
+                <div className="label">Grade {gradeLevel} Leader</div>
+                <div className="value" style={{ color: 'var(--nebula)' }}>{gradeLeaderAvg}%</div>
+                {gradeLeaderName && <div style={{ fontSize: 12, color: 'var(--star-dim)', marginTop: 4 }}>{gradeLeaderName}</div>}
+              </div>
+            )}
           </div>
           {boardTrack(selectedSection?.board_pos || 0, selectedSection?.laps || 0)}
           <button className="btn btn-primary btn-full" onClick={() => setStep('question')}>Begin Today&apos;s Mission →</button>
@@ -409,6 +444,13 @@ export default function MissionPage() {
           <div className="stat-card"><div className="label">Today&apos;s Score</div><div className="value">{pct}%</div></div>
           <div className="stat-card"><div className="label">Class Average</div><div className="value warn">{classAverage}%</div></div>
           <div className="stat-card"><div className="label">Best This Year{isNewRecord ? ' 🎉' : ''}</div><div className="value good">{selectedSection?.best_pct}%</div></div>
+          {school?.competition_mode && gradeLeaderAvg !== null && (
+            <div className="stat-card">
+              <div className="label">Grade {gradeLevel} Leader</div>
+              <div className="value" style={{ color: 'var(--nebula)' }}>{gradeLeaderAvg}%</div>
+              {gradeLeaderName && <div style={{ fontSize: 12, color: 'var(--star-dim)', marginTop: 4 }}>{gradeLeaderName}</div>}
+            </div>
+          )}
         </div>
 
         {boardTrack(selectedSection?.board_pos || 0, selectedSection?.laps || 0)}

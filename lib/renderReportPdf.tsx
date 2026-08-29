@@ -74,6 +74,20 @@ function ReportDocument({ data }: { data: WeeklyReportData }) {
             <Text style={styles.statValue}>{data.reactorsToRemove}</Text>
           </View>
 
+          <Text style={styles.sectionTitle}>Highest Year-to-Date Average, by Grade</Text>
+          <View style={{ marginBottom: 16 }}>
+            <View style={styles.tableHeaderRow}>
+              <Text style={[styles.colTeacher, styles.headerText]}>Grade / Teacher</Text>
+              <Text style={[styles.colDays, styles.headerText]}>Average</Text>
+            </View>
+            {data.topPerformerByGrade.map((t, i) => (
+              <View style={styles.tableRow} key={i}>
+                <Text style={styles.colTeacher}>Grade {t.gradeLevel} — {t.teacherName}{t.sectionLabel !== 'All Day' ? ` (${t.sectionLabel})` : ''}</Text>
+                <Text style={{ ...styles.colDays, color: '#16233f', fontWeight: 700 }}>{t.average}%</Text>
+              </View>
+            ))}
+          </View>
+
           <Text style={styles.sectionTitle}>Classrooms Not Fully Completed This Week</Text>
           {data.incompleteTeachers.length === 0 ? (
             <Text style={styles.emptyNote}>Every classroom completed every mission this week — great work, school-wide!</Text>

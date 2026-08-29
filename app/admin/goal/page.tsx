@@ -9,6 +9,7 @@ export default function AdminGoalPage() {
   const [loading, setLoading] = useState(true)
   const [schoolId, setSchoolId] = useState<string | null>(null)
   const [goal, setGoal] = useState(75)
+  const [competitionMode, setCompetitionMode] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
 
@@ -40,7 +41,7 @@ export default function AdminGoalPage() {
 
     const { data: school, error: schoolErr } = await supabase
       .from('schools')
-      .select('school_goal_pct')
+      .select('school_goal_pct, competition_mode')
       .eq('id', admin.school_id)
       .single()
 
@@ -51,6 +52,7 @@ export default function AdminGoalPage() {
     }
 
     setGoal(school.school_goal_pct)
+    setCompetitionMode(!!school.competition_mode)
     setLoading(false)
   }
 
@@ -60,7 +62,7 @@ export default function AdminGoalPage() {
 
     const { error: updateErr } = await supabase
       .from('schools')
-      .update({ school_goal_pct: goal })
+      .update({ school_goal_pct: goal, competition_mode: competitionMode })
       .eq('id', schoolId)
 
     if (updateErr) {
@@ -92,8 +94,34 @@ export default function AdminGoalPage() {
           />
         </div>
 
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          background: 'var(--void)', border: '1px solid var(--panel-edge)', borderRadius: 10,
+          padding: '16px 18px', marginBottom: 22,
+        }}>
+          <div style={{ maxWidth: 400 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--star)', marginBottom: 4 }}>Competition Mode</div>
+            <div style={{ fontSize: 13, color: 'var(--star-dim)', lineHeight: 1.5 }}>
+              When on, teachers see the highest year-to-date class average among other classes in their own grade at this school. Off by default — turn on only if you want friendly inter-class competition.
+            </div>
+          </div>
+          <span
+            onClick={() => { setCompetitionMode(!competitionMode); setSaved(false) }}
+            style={{
+              cursor: 'pointer', flexShrink: 0, marginLeft: 16,
+              fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700,
+              padding: '9px 16px', borderRadius: 999,
+              background: competitionMode ? 'rgba(79,209,197,.15)' : 'rgba(167,173,201,.1)',
+              color: competitionMode ? 'var(--thruster)' : 'var(--star-dim)',
+              border: competitionMode ? '1px solid rgba(79,209,197,.4)' : '1px solid var(--panel-edge)',
+            }}
+          >
+            {competitionMode ? '● ON' : '○ OFF'}
+          </span>
+        </div>
+
         <button className="btn btn-ghost btn-full" onClick={handleSave}>
-          Save Goal — Applies Starting Tomorrow
+          Save Settings — Applies Starting Tomorrow
         </button>
 
         {saved && <p style={{ color: 'var(--thruster)', marginTop: 14, fontSize: 14 }}>✅ Saved.</p>}

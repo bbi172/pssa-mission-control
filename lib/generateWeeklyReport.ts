@@ -15,6 +15,7 @@ export type WeeklyReportData = {
   possibleSubmissions: number
   actualSubmissions: number
   participationRate: number
+  topPerformerByGrade: { gradeLevel: number; teacherName: string; sectionLabel: string; average: number }[]
   incompleteTeachers: { teacherName: string; gradeLevel: number; sectionLabel: string; missedDays: number[] }[]
 }
 
@@ -61,13 +62,38 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
 
   const { data: allHistory } = await supabaseAdmin
     .from('daily_history')
-    .select('pct')
+    .select('section_id, pct')
     .in('section_id', sectionIds)
 
   const highestPctAllYear = (allHistory || []).reduce((max, h) => Math.max(max, h.pct || 0), 0)
   const reactorsToRemove = sections.reduce((sum: number, s: any) => sum + (s.laps || 0), 0)
 
   const totalClassrooms = sections.length
+
+  // Highest year-to-date average, per grade level — shown regardless of
+  // whether Competition Mode is turned on for teachers, since this report
+  // is principal-facing and already names teachers elsewhere.
+  const gradeLevels = Array.from(new Set((sections as any[]).map(s => s.teachers?.grade_level).filter(g => g !== undefined)))
+  const topPerformerByGrade: WeeklyReportData['topPerformerByGrade'] = []
+  for (const gl of gradeLevels) {
+    const sectionsInGrade = (sections as any[]).filter(s => s.teachers?.grade_level === gl)
+    let topAvg = -1
+    let topSection: any = null
+    for (const s of sectionsInGrade) {
+      const entries = (allHistory || []).filter(h => h.section_id === s.id && h.pct !== null)
+      const avg = entries.length > 0 ? Math.round(entries.reduce((sum, h) => sum + (h.pct || 0), 0) / entries.length) : 0
+      if (avg > topAvg) { topAvg = avg; topSection = s }
+    }
+    if (topSection) {
+      topPerformerByGrade.push({
+        gradeLevel: gl,
+        teacherName: topSection.teachers?.name || 'Unknown',
+        sectionLabel: topSection.label,
+        average: topAvg,
+      })
+    }
+  }
+  topPerformerByGrade.sort((a, b) => a.gradeLevel - b.gradeLevel)
 
   const daysInRange: number[] = []
   for (let d = weekStartDay; d <= weekEndDay; d++) daysInRange.push(d)
@@ -113,6 +139,7 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
     possibleSubmissions,
     actualSubmissions,
     participationRate,
+    topPerformerByGrade,
     incompleteTeachers,
   }
 }
