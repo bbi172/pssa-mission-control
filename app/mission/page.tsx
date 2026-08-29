@@ -309,20 +309,22 @@ export default function MissionPage() {
   if (step === 'question' && question) {
     const choices: [string, string][] = [['A', question.choice_a], ['B', question.choice_b], ['C', question.choice_c], ['D', question.choice_d]]
     return (
-      <main className="app">
+      <main className="app" style={{ maxWidth: 1200 }}>
         <div className="panel">
-          <span className="eyebrow">Day {question.day_number} · Step 1 of 3</span>
-          <h2>Today&apos;s Question</h2>
-          <p className="sub">Read the question aloud, then have students hold up A, B, C, or D.</p>
-          <div style={{ background: 'var(--void)', border: '1px solid var(--panel-edge)', borderRadius: 16, padding: '28px 30px', marginBottom: 22, fontSize: 24, fontWeight: 800 }}>
+          <span className="eyebrow" style={{ fontSize: 15 }}>Day {question.day_number} · Step 1 of 3</span>
+          <h2 style={{ fontSize: 34 }}>Today&apos;s Question</h2>
+          <p className="sub" style={{ fontSize: 16 }}>Read the question aloud, then have students hold up A, B, C, or D.</p>
+          <div style={{ background: 'var(--void)', border: '1px solid var(--panel-edge)', borderRadius: 16, padding: '32px 34px', marginBottom: 26, fontSize: 34, lineHeight: 1.4, fontWeight: 800 }}>
             {question.question_text}
           </div>
-          {choices.map(([letter, text]) => (
-            <div key={letter} style={{ display: 'flex', gap: 18, background: 'var(--void)', border: '1px solid var(--panel-edge)', borderRadius: 14, padding: '20px 22px', marginBottom: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--panel-edge)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Orbitron', fontWeight: 700 }}>{letter}</div>
-              <div style={{ fontSize: 20, fontWeight: 600 }}>{text}</div>
-            </div>
-          ))}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginBottom: 24 }}>
+            {choices.map(([letter, text]) => (
+              <div key={letter} style={{ display: 'flex', alignItems: 'center', gap: 18, background: 'var(--void)', border: '1px solid var(--panel-edge)', borderRadius: 14, padding: '24px 26px' }}>
+                <div style={{ width: 56, height: 56, flexShrink: 0, borderRadius: 12, background: 'var(--panel-edge)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Orbitron', fontWeight: 700, fontSize: 24 }}>{letter}</div>
+                <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.3 }}>{text}</div>
+              </div>
+            ))}
+          </div>
           <button className="btn btn-primary btn-full" onClick={() => setStep('tally')}>Students Have Answered — Enter Tally →</button>
         </div>
       </main>
