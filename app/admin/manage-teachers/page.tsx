@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
-type Teacher = { id: string; name: string; email: string; grade_level: number; school_id: string }
+type Teacher = { id: string; name: string; email: string; grade_level: number; school_id: string; isAdminAccount: boolean }
 
 export default function ManageTeachersPage() {
   const router = useRouter()
@@ -21,25 +21,18 @@ export default function ManageTeachersPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
-    const { data: admin } = await supabase.from('admins').select('role, school_id, district_id').eq('user_id', user.id).single()
-    if (!admin) { setError('This account is not an administrator.'); setLoading(false); return }
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setLoading(false); return }
 
-    let query = supabase.from('teachers').select('id, name, email, grade_level, school_id')
+    const res = await fetch('/api/teachers-list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: session.access_token }),
+    })
+    const data = await res.json()
 
-    if (admin.role === 'school_admin') {
-      if (!admin.school_id) { setError('This admin account is not linked to a school yet.'); setLoading(false); return }
-      query = query.eq('school_id', admin.school_id)
-    } else {
-      // owner / district_admin — show every teacher at every school in their district
-      const { data: schools } = await supabase.from('schools').select('id').eq('district_id', admin.district_id)
-      const schoolIds = (schools || []).map(s => s.id)
-      query = query.in('school_id', schoolIds)
-    }
-
-    const { data: teacherRows, error: tErr } = await query.order('grade_level').order('name')
-    if (tErr) { setError('Could not load teachers.'); setLoading(false); return }
-
-    setTeachers(teacherRows || [])
+    if (data.error) { setError(data.error); setLoading(false); return }
+    setTeachers(data.teachers || [])
     setLoading(false)
   }
 
@@ -76,7 +69,10 @@ export default function ManageTeachersPage() {
 
         {teachers.map(t => (
           <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--panel-edge)' }}>
-            <span style={{ fontSize: 15 }}>{t.name} <span style={{ color: 'var(--star-dim)', fontSize: 13 }}>· Grade {t.grade_level} · {t.email}</span></span>
+            <span style={{ fontSize: 15 }}>
+              {t.name} <span style={{ color: 'var(--star-dim)', fontSize: 13 }}>· Grade {t.grade_level} · {t.email}</span>
+              {t.isAdminAccount && <span style={{ color: 'var(--alert)', fontSize: 11, marginLeft: 10, fontFamily: "'JetBrains Mono', monospace" }}>(Admin Account)</span>}
+            </span>
             {confirmingId === t.id ? (
               <span style={{ display: 'flex', gap: 8 }}>
                 <button className="btn btn-ghost" style={{ padding: '6px 14px', fontSize: 12, background: 'rgba(240,96,90,0.15)', borderColor: 'var(--alert)', color: 'var(--alert)' }} disabled={busy} onClick={() => handleDelete(t.id)}>

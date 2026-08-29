@@ -126,28 +126,14 @@ export default function MissionPage() {
       setSchool(schoolData)
 
       if (schoolData.competition_mode) {
-        const { data: gradeSections } = await supabase
-          .from('sections')
-          .select('id, teachers!inner(name, grade_level)')
-          .eq('school_id', section.school_id)
-          .eq('teachers.grade_level', grade)
-
-        if (gradeSections && gradeSections.length > 0) {
-          const sectionIds = gradeSections.map((s: any) => s.id)
-          const { data: gradeHistory } = await supabase
-            .from('daily_history').select('section_id, pct').in('section_id', sectionIds).eq('missed', false)
-
-          let topAvg = -1
-          let topSectionId: string | null = null
-          for (const sid of sectionIds) {
-            const entries = (gradeHistory || []).filter(h => h.section_id === sid && h.pct !== null)
-            const avg = entries.length > 0 ? Math.round(entries.reduce((sum, h) => sum + (h.pct || 0), 0) / entries.length) : 0
-            if (avg > topAvg) { topAvg = avg; topSectionId = sid }
-          }
-          const topSection: any = gradeSections.find((s: any) => s.id === topSectionId)
-          setGradeLeaderAvg(topAvg >= 0 ? topAvg : null)
-          setGradeLeaderName(topSection?.teachers?.name || null)
-        }
+        const leaderRes = await fetch('/api/grade-leader', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ schoolId: section.school_id, gradeLevel: grade }),
+        })
+        const leaderData = await leaderRes.json()
+        setGradeLeaderAvg(leaderData.average)
+        setGradeLeaderName(leaderData.teacherName)
       }
 
       const todaysDayNumber = schoolData.current_day_index + 1

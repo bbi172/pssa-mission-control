@@ -36,12 +36,19 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
 
   const { data: sections, error: secErr } = await supabaseAdmin
     .from('sections')
-    .select('id, label, best_pct, laps, teacher_id, teachers(name, grade_level)')
+    .select('id, label, best_pct, laps, teacher_id, teachers(name, grade_level, user_id)')
     .eq('school_id', schoolId)
 
   if (secErr || !sections) throw new Error('Could not load sections')
 
-  const sectionIds = sections.map(s => s.id)
+  // Exclude any teacher who is ALSO an administrator (these exist purely
+  // so admins can preview the teacher interface, and would otherwise
+  // skew real classroom statistics with test data).
+  const { data: adminRows } = await supabaseAdmin.from('admins').select('user_id')
+  const adminUserIds = new Set((adminRows || []).map(a => a.user_id))
+  const realSections = (realSections as any[]).filter(s => !adminUserIds.has(s.teachers?.user_id))
+
+  const sectionIds = realSections.map(s => s.id)
 
   const { data: weekHistory } = await supabaseAdmin
     .from('daily_history')
@@ -66,17 +73,17 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
     .in('section_id', sectionIds)
 
   const highestPctAllYear = (allHistory || []).reduce((max, h) => Math.max(max, h.pct || 0), 0)
-  const reactorsToRemove = sections.reduce((sum: number, s: any) => sum + (s.laps || 0), 0)
+  const reactorsToRemove = realSections.reduce((sum: number, s: any) => sum + (s.laps || 0), 0)
 
-  const totalClassrooms = sections.length
+  const totalClassrooms = realSections.length
 
   // Highest year-to-date average, per grade level — shown regardless of
   // whether Competition Mode is turned on for teachers, since this report
   // is principal-facing and already names teachers elsewhere.
-  const gradeLevels = Array.from(new Set((sections as any[]).map(s => s.teachers?.grade_level).filter(g => g !== undefined)))
+  const gradeLevels = Array.from(new Set((realSections as any[]).map(s => s.teachers?.grade_level).filter(g => g !== undefined)))
   const topPerformerByGrade: WeeklyReportData['topPerformerByGrade'] = []
   for (const gl of gradeLevels) {
-    const sectionsInGrade = (sections as any[]).filter(s => s.teachers?.grade_level === gl)
+    const sectionsInGrade = (realSections as any[]).filter(s => s.teachers?.grade_level === gl)
     let topAvg = -1
     let topSection: any = null
     for (const s of sectionsInGrade) {
@@ -108,7 +115,7 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
   ).size
 
   const incompleteTeachers: WeeklyReportData['incompleteTeachers'] = []
-  for (const s of sections as any[]) {
+  for (const s of realSections as any[]) {
     const sectionHistory = history.filter(h => h.section_id === s.id)
     const missedDays = daysInRange.filter(d => {
       const entry = sectionHistory.find(h => h.day_number === d)

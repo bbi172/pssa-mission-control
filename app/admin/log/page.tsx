@@ -14,6 +14,7 @@ type SectionSummary = {
   laps: number
   completedCount: number
   missedCount: number
+  isAdminAccount: boolean
 }
 
 export default function AdminLogPage() {
@@ -21,7 +22,6 @@ export default function AdminLogPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [rows, setRows] = useState<SectionSummary[]>([])
-  const [currentDay, setCurrentDay] = useState(0)
 
   useEffect(() => { load() }, [])
 
@@ -29,52 +29,23 @@ export default function AdminLogPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
-    const { data: admin, error: adminErr } = await supabase
-      .from('admins').select('school_id').eq('user_id', user.id).single()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setLoading(false); return }
 
-    if (adminErr || !admin || !admin.school_id) {
-      setError('This admin account is not linked to a specific school yet.')
-      setLoading(false)
-      return
-    }
-
-    const { data: school } = await supabase
-      .from('schools').select('current_day_index').eq('id', admin.school_id).single()
-    setCurrentDay(school?.current_day_index || 0)
-
-    const { data: sections, error: secErr } = await supabase
-      .from('sections')
-      .select('id, label, best_pct, board_pos, laps, teacher_id, teachers(name, grade_level)')
-      .eq('school_id', admin.school_id)
-
-    if (secErr || !sections) {
-      setError('Could not load class list.')
-      setLoading(false)
-      return
-    }
-
-    const { data: history } = await supabase
-      .from('daily_history')
-      .select('section_id, missed')
-      .in('section_id', sections.map(s => s.id))
-
-    const summaries: SectionSummary[] = sections.map((s: any) => {
-      const sectionHistory = (history || []).filter(h => h.section_id === s.id)
-      return {
-        sectionId: s.id,
-        teacherName: s.teachers?.name || 'Unknown',
-        gradeLevel: s.teachers?.grade_level ?? 0,
-        label: s.label,
-        bestPct: s.best_pct,
-        boardPos: s.board_pos,
-        laps: s.laps,
-        completedCount: sectionHistory.filter(h => !h.missed).length,
-        missedCount: sectionHistory.filter(h => h.missed).length,
-      }
+    const res = await fetch('/api/mission-log-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: session.access_token }),
     })
+    const data = await res.json()
 
-    summaries.sort((a, b) => a.gradeLevel - b.gradeLevel || a.teacherName.localeCompare(b.teacherName))
-    setRows(summaries)
+    if (data.error) {
+      setError(data.error)
+      setLoading(false)
+      return
+    }
+
+    setRows(data.summaries || [])
     setLoading(false)
   }
 
@@ -86,9 +57,9 @@ export default function AdminLogPage() {
       <div className="panel">
         <span className="eyebrow">Section 4 · Mission Log</span>
         <h2>Participation &amp; Progress Report</h2>
-        <p className="sub">School is on Mission Day {currentDay + 1}. This covers every class, year-to-date.</p>
+        <p className="sub">Year-to-date, every real class. Admin accounts used for testing are hidden from this view for School Administrators, and clearly marked for District Administrators.</p>
 
-        {rows.length === 0 && <p className="sub">No classes found for this school yet.</p>}
+        {rows.length === 0 && <p className="sub">No classes found.</p>}
 
         {rows.map(r => (
           <div key={r.sectionId} style={{
@@ -97,6 +68,7 @@ export default function AdminLogPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
               <span style={{ fontSize: 18, fontWeight: 700 }}>
                 {r.teacherName} <span style={{ color: 'var(--star-dim)', fontSize: 14, fontWeight: 500 }}>· Grade {r.gradeLevel}{r.label !== 'All Day' ? ` · ${r.label}` : ''}</span>
+                {r.isAdminAccount && <span style={{ color: 'var(--maroon, var(--alert))', fontSize: 12, marginLeft: 10, fontFamily: "'JetBrains Mono', monospace" }}>(Admin Account)</span>}
               </span>
             </div>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', fontFamily: 'JetBrains Mono, monospace', fontSize: 13 }}>
