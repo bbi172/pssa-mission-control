@@ -436,11 +436,34 @@ export default function MissionPage() {
         <p className="sub">That&apos;s the mission for today — great work!</p>
 
         {quote && (
-          <div style={{ background: 'var(--void)', border: '1px solid var(--panel-edge)', borderRadius: 14, padding: '26px 28px', marginBottom: 22 }}>
-            <p style={{ fontSize: 19, fontStyle: 'italic', lineHeight: 1.55, color: 'var(--star)', marginBottom: 12 }}>
+          <div style={{
+            position: 'relative',
+            overflow: 'hidden',
+            background: 'radial-gradient(ellipse at 30% 20%, #1a2148 0%, var(--void) 70%)',
+            backgroundImage: `
+              radial-gradient(circle, rgba(242,240,232,0.5) 1px, transparent 1px),
+              radial-gradient(circle, rgba(242,240,232,0.35) 1px, transparent 1px),
+              radial-gradient(ellipse at 30% 20%, #1a2148 0%, #0a0e1f 70%)
+            `,
+            backgroundSize: '60px 60px, 38px 38px, 100% 100%',
+            backgroundPosition: '0 0, 20px 25px, 0 0',
+            border: '1px solid var(--panel-edge)',
+            borderRadius: 16,
+            padding: '36px 32px',
+            marginBottom: 22,
+            textAlign: 'center',
+          }}>
+            <p style={{
+              fontFamily: "'Fraunces', serif",
+              fontWeight: 500,
+              fontSize: 26,
+              lineHeight: 1.5,
+              color: 'var(--star)',
+              marginBottom: 16,
+            }}>
               &ldquo;{quote.quote_text}&rdquo;
             </p>
-            <p style={{ fontSize: 14, color: 'var(--thruster)', fontWeight: 700, textAlign: 'right' }}>
+            <p style={{ fontSize: 15, color: 'var(--thruster)', fontWeight: 700, fontStyle: 'italic' }}>
               — {quote.author}
             </p>
           </div>
