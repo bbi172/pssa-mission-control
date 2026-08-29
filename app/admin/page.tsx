@@ -62,6 +62,7 @@ export default function AdminHomePage() {
   const ownerTools = [
     { href: '/admin/videos', title: 'Upload Videos', desc: 'Attach explainer videos to questions by filename.' },
     { href: '/admin/questions', title: 'Upload Question Bank', desc: 'Bulk-load the question spreadsheet for every grade.' },
+    { href: '/admin/quotes', title: 'Upload Motivational Quotes', desc: 'Bulk-load the quote spreadsheet for every grade.' },
   ]
 
   function ToolGrid({ tools, tint }: { tools: typeof everyoneTools; tint?: boolean }) {
