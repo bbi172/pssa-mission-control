@@ -127,7 +127,14 @@ export default function UploadQuestionsPage() {
         <h2>Upload Question Bank</h2>
         <p className="sub">Upload the Question &amp; Video Bank spreadsheet. Days already completed by any school are automatically protected.</p>
 
-        <input type="file" accept=".xlsx" onChange={handleFile} style={{ marginBottom: 20, color: 'var(--star)' }} />
+        <input type="file" id="questionsFileInput" accept=".xlsx" onChange={handleFile} style={{ display: 'none' }} />
+        <label
+          htmlFor="questionsFileInput"
+          className="btn btn-primary"
+          style={{ cursor: 'pointer', display: 'inline-flex', marginBottom: 20 }}
+        >
+          📁 Choose Spreadsheet File
+        </label>
 
         {fileName && (
           <div style={{ marginBottom: 20 }}>

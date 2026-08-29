@@ -176,7 +176,14 @@ export default function AdminVideosPage() {
           </div>
         )}
 
-        <input type="file" accept="video/mp4" multiple onChange={handleSelect} style={{ marginBottom: 20, color: 'var(--star)' }} />
+        <input type="file" id="videoFileInput" accept="video/mp4" multiple onChange={handleSelect} style={{ display: 'none' }} />
+        <label
+          htmlFor="videoFileInput"
+          className="btn btn-primary"
+          style={{ cursor: 'pointer', display: 'inline-flex', marginBottom: 20 }}
+        >
+          📁 Choose Video File(s)
+        </label>
 
         {files.length > 0 && (
           <button className="btn btn-primary btn-full" disabled={running} onClick={handleUploadAll} style={{ marginBottom: 20 }}>

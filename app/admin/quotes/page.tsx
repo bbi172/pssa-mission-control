@@ -96,7 +96,14 @@ export default function UploadQuotesPage() {
         <h2>Upload Motivational Quotes</h2>
         <p className="sub">One quote per grade, per day — shown to the class at the end of each Mission Day.</p>
 
-        <input type="file" accept=".xlsx" onChange={handleFile} style={{ marginBottom: 20, color: 'var(--star)' }} />
+        <input type="file" id="quotesFileInput" accept=".xlsx" onChange={handleFile} style={{ display: 'none' }} />
+        <label
+          htmlFor="quotesFileInput"
+          className="btn btn-primary"
+          style={{ cursor: 'pointer', display: 'inline-flex', marginBottom: 20 }}
+        >
+          📁 Choose Spreadsheet File
+        </label>
 
         {fileName && (
           <div style={{ marginBottom: 20 }}>

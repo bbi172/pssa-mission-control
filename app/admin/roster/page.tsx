@@ -100,7 +100,14 @@ export default function UploadRosterPage() {
         <h2>Upload Teacher Roster</h2>
         <p className="sub">Upload the Roster spreadsheet's Teachers tab. New teachers are automatically emailed a link to set their own password.</p>
 
-        <input type="file" accept=".xlsx" onChange={handleFile} style={{ marginBottom: 20, color: 'var(--star)' }} />
+        <input type="file" id="rosterFileInput" accept=".xlsx" onChange={handleFile} style={{ display: 'none' }} />
+        <label
+          htmlFor="rosterFileInput"
+          className="btn btn-primary"
+          style={{ cursor: 'pointer', display: 'inline-flex', marginBottom: 20 }}
+        >
+          📁 Choose Spreadsheet File
+        </label>
 
         {fileName && <p className="sub">Read {rows.length} rows from <strong>{fileName}</strong>.</p>}
 
