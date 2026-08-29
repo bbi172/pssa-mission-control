@@ -33,7 +33,7 @@ type Question = {
   video_url: string | null
 }
 
-type Step = 'intro' | 'question' | 'tally' | 'video' | 'results'
+type Step = 'intro' | 'question' | 'tally' | 'video' | 'results' | 'closing'
 
 export default function MissionPage() {
   const router = useRouter()
@@ -380,6 +380,7 @@ export default function MissionPage() {
   }
 
   // results
+  if (step === 'results') {
   return (
     <main className="app">
       <div className="panel">
@@ -419,27 +420,38 @@ export default function MissionPage() {
           </div>
         )}
 
-        <div style={{ borderTop: '1px solid var(--panel-edge)', marginTop: 8, paddingTop: 26 }}>
-          <p style={{ textAlign: 'center', fontSize: 15, color: 'var(--star-dim)', marginBottom: 18 }}>
-            That&apos;s the mission for today — great work, crew. See you tomorrow!
-          </p>
-          {quote && (
-            <div style={{ background: 'var(--void)', border: '1px solid var(--panel-edge)', borderRadius: 14, padding: '26px 28px', marginBottom: 22 }}>
-              <p style={{ fontSize: 19, fontStyle: 'italic', lineHeight: 1.55, color: 'var(--star)', marginBottom: 12 }}>
-                &ldquo;{quote.quote_text}&rdquo;
-              </p>
-              <p style={{ fontSize: 14, color: 'var(--thruster)', fontWeight: 700, textAlign: 'right' }}>
-                — {quote.author}
-              </p>
-            </div>
-          )}
-          <button
-            className="btn btn-primary btn-full"
-            onClick={async () => { await supabase.auth.signOut(); router.push('/login') }}
-          >
-            Log Out
-          </button>
-        </div>
+        <button className="btn btn-primary btn-full" onClick={() => setStep('closing')}>Continue →</button>
+      </div>
+    </main>
+  )
+  }
+
+  // closing — its own dedicated, deliberately short screen so it never
+  // requires scrolling to see the quote and Log Out button
+  return (
+    <main className="app">
+      <div className="panel">
+        <span className="eyebrow">Day {question?.day_number} Complete</span>
+        <h2>See You Tomorrow, Crew</h2>
+        <p className="sub">That&apos;s the mission for today — great work!</p>
+
+        {quote && (
+          <div style={{ background: 'var(--void)', border: '1px solid var(--panel-edge)', borderRadius: 14, padding: '26px 28px', marginBottom: 22 }}>
+            <p style={{ fontSize: 19, fontStyle: 'italic', lineHeight: 1.55, color: 'var(--star)', marginBottom: 12 }}>
+              &ldquo;{quote.quote_text}&rdquo;
+            </p>
+            <p style={{ fontSize: 14, color: 'var(--thruster)', fontWeight: 700, textAlign: 'right' }}>
+              — {quote.author}
+            </p>
+          </div>
+        )}
+
+        <button
+          className="btn btn-primary btn-full"
+          onClick={async () => { await supabase.auth.signOut(); router.push('/login') }}
+        >
+          Log Out
+        </button>
       </div>
     </main>
   )
