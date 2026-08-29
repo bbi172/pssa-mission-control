@@ -65,8 +65,8 @@ export default function TileBackground({ flip, onComplete }: { flip: boolean; on
           50% { opacity: 1; transform: scale(1); }
         }
         @keyframes fastTwinkle {
-          0%, 100% { opacity: 0.12; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.9); }
+          0%, 100% { opacity: 0.28; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.45); }
         }
       `}</style>
     </div>
