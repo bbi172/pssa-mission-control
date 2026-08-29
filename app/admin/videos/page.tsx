@@ -10,12 +10,23 @@ type FileStatus = {
   message?: string
 }
 
+type GradeStatus = {
+  gradeLevel: number
+  lastLoadedFilename: string | null
+  lastLoadedDay: number | null
+  missingDays: { day: number; filename: string }[]
+}
+
+const GRADE_LABELS: Record<number, string> = { 0: 'Training', 3: 'Grade 3', 4: 'Grade 4', 5: 'Grade 5' }
+
 export default function AdminVideosPage() {
   const router = useRouter()
   const [authorized, setAuthorized] = useState<boolean | null>(null)
   const [files, setFiles] = useState<FileStatus[]>([])
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [running, setRunning] = useState(false)
+  const [gradeStatuses, setGradeStatuses] = useState<GradeStatus[]>([])
+  const [statusLoading, setStatusLoading] = useState(true)
 
   useEffect(() => { checkAccess() }, [])
 
@@ -24,6 +35,42 @@ export default function AdminVideosPage() {
     if (!user) { router.push('/login'); return }
     const { data: admin } = await supabase.from('admins').select('role').eq('user_id', user.id).single()
     setAuthorized(admin?.role === 'owner')
+    if (admin?.role === 'owner') await loadVideoStatus()
+  }
+
+  async function loadVideoStatus() {
+    setStatusLoading(true)
+    const { data: rows } = await supabase
+      .from('questions')
+      .select('grade_level, day_number, video_filename, video_url')
+      .order('day_number')
+
+    const grades = [3, 4, 5, 0]
+    const statuses: GradeStatus[] = grades.map(gl => {
+      const gradeRows = (rows || []).filter(r => r.grade_level === gl)
+      const loadedRows = gradeRows.filter(r => r.video_url)
+
+      if (loadedRows.length === 0) {
+        return { gradeLevel: gl, lastLoadedFilename: null, lastLoadedDay: null, missingDays: [] }
+      }
+
+      const lastLoadedDay = Math.max(...loadedRows.map(r => r.day_number))
+      const lastLoadedRow = loadedRows.find(r => r.day_number === lastLoadedDay)
+
+      const missingDays = gradeRows
+        .filter(r => r.day_number <= lastLoadedDay && !r.video_url)
+        .map(r => ({ day: r.day_number, filename: r.video_filename || `(day ${r.day_number})` }))
+
+      return {
+        gradeLevel: gl,
+        lastLoadedFilename: lastLoadedRow?.video_filename || null,
+        lastLoadedDay,
+        missingDays,
+      }
+    })
+
+    setGradeStatuses(statuses)
+    setStatusLoading(false)
   }
 
   function handleSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -88,6 +135,7 @@ export default function AdminVideosPage() {
     }
 
     setRunning(false)
+    await loadVideoStatus()
   }
 
   if (authorized === null) return <main className="app"><p style={{ color: 'var(--star-dim)' }}>Checking access...</p></main>
@@ -99,6 +147,34 @@ export default function AdminVideosPage() {
         <span className="eyebrow">Admin Tools</span>
         <h2>Upload Videos</h2>
         <p className="sub">Select one or more mp4 files. Each one auto-matches to a question by its exact filename — the same names you put in the video_filename column of your spreadsheet.</p>
+
+        <span className="eyebrow" style={{ display: 'block', marginTop: 6 }}>Current Status, By Grade</span>
+        {statusLoading ? (
+          <p className="sub" style={{ fontSize: 14 }}>Checking what's loaded so far...</p>
+        ) : (
+          <div style={{ marginBottom: 26 }}>
+            {gradeStatuses.map(gs => (
+              <div key={gs.gradeLevel} style={{
+                background: 'var(--void)', border: '1px solid var(--panel-edge)', borderRadius: 12,
+                padding: '16px 18px', marginBottom: 10, fontSize: 14,
+              }}>
+                <div style={{ fontWeight: 700, color: 'var(--star)', marginBottom: 6 }}>{GRADE_LABELS[gs.gradeLevel]}</div>
+                {gs.lastLoadedFilename === null ? (
+                  <div style={{ color: 'var(--star-dim)' }}>No videos loaded yet.</div>
+                ) : gs.missingDays.length === 0 ? (
+                  <div style={{ color: 'var(--thruster)' }}>
+                    ✅ The last video loaded was <strong>&ldquo;{gs.lastLoadedFilename}&rdquo;</strong> (Day {gs.lastLoadedDay}). All videos up to that day have loaded successfully!
+                  </div>
+                ) : (
+                  <div style={{ color: 'var(--solar)' }}>
+                    ⚠ The last video loaded was <strong>&ldquo;{gs.lastLoadedFilename}&rdquo;</strong> (Day {gs.lastLoadedDay}), but {gs.missingDays.length} day{gs.missingDays.length === 1 ? ' is' : 's are'} still missing before that point:{' '}
+                    {gs.missingDays.map(m => `"${m.filename}" (Day ${m.day})`).join(', ')}.
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         <input type="file" accept="video/mp4" multiple onChange={handleSelect} style={{ marginBottom: 20, color: 'var(--star)' }} />
 
