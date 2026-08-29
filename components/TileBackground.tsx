@@ -3,46 +3,34 @@
 import { useEffect, useMemo, useState } from 'react'
 
 const STAR_COUNT = 180
-const WARP_MS = 900
-const HOLD_MS = 500
+const FAST_TWINKLE_MS = 1400
 
 type Star = {
-  left: number   // percent
-  top: number    // percent
+  left: number
+  top: number
   size: number
   baseOpacity: number
-  angleDeg: number
   twinkleDelay: number
 }
 
 export default function TileBackground({ flip, onComplete }: { flip: boolean; onComplete?: () => void }) {
-  const [flashOn, setFlashOn] = useState(false)
-
   const stars = useMemo<Star[]>(() => {
     const arr: Star[] = []
     for (let i = 0; i < STAR_COUNT; i++) {
-      // deterministic pseudo-random spread (no Math.random, avoids hydration mismatches)
       const left = (i * 53.7) % 100
       const top = (i * 31.3 + i * i * 0.7) % 100
       const size = 1 + ((i * 7) % 3) * 0.7
       const baseOpacity = 0.35 + ((i * 13) % 60) / 100
-      const dx = left - 50
-      const dy = top - 50
-      const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI
       const twinkleDelay = (i % 40) * 0.1
-      arr.push({ left, top, size, baseOpacity, angleDeg, twinkleDelay })
+      arr.push({ left, top, size, baseOpacity, twinkleDelay })
     }
     return arr
   }, [])
 
   useEffect(() => {
     if (!flip || !onComplete) return
-    const flashTimer = setTimeout(() => setFlashOn(true), WARP_MS * 0.55)
-    const doneTimer = setTimeout(onComplete, WARP_MS + HOLD_MS)
-    return () => {
-      clearTimeout(flashTimer)
-      clearTimeout(doneTimer)
-    }
+    const t = setTimeout(onComplete, FAST_TWINKLE_MS)
+    return () => clearTimeout(t)
   }, [flip, onComplete])
 
   return (
@@ -62,36 +50,25 @@ export default function TileBackground({ flip, onComplete }: { flip: boolean; on
             position: 'absolute',
             left: `${s.left}%`,
             top: `${s.top}%`,
-            width: flip ? 2 : s.size,
-            height: flip ? 2 : s.size,
+            width: s.size,
+            height: s.size,
             borderRadius: '50%',
             background: '#f2f0e8',
-            opacity: flip ? 0.95 : s.baseOpacity,
-            transformOrigin: 'left center',
-            transform: flip ? `rotate(${s.angleDeg}deg) scaleX(70)` : 'rotate(0deg) scaleX(1)',
-            transition: flip
-              ? `transform ${WARP_MS}ms cubic-bezier(.2,.7,.3,1), opacity ${WARP_MS * 0.5}ms ease`
-              : 'none',
-            animation: flip ? 'none' : `twinkle 3.5s ease-in-out ${s.twinkleDelay}s infinite`,
+            animation: flip
+              ? `fastTwinkle 0.4s ease-in-out ${(i % 10) * 0.03}s infinite`
+              : `twinkle 3.5s ease-in-out ${s.twinkleDelay}s infinite`,
+            opacity: s.baseOpacity,
           }}
         />
       ))}
 
-      {/* brief white flash at the peak of the jump */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: '#f2f0e8',
-          opacity: flashOn ? 0.85 : 0,
-          transition: flashOn ? 'opacity 120ms ease-out' : `opacity ${HOLD_MS}ms ease-in`,
-          pointerEvents: 'none',
-        }}
-      />
-
       <style>{`
         @keyframes twinkle {
-          0%, 100% { opacity: var(--base-opacity, 0.4); }
+          0%, 100% { opacity: 0.35; }
+          50% { opacity: 1; }
+        }
+        @keyframes fastTwinkle {
+          0%, 100% { opacity: 0.5; }
           50% { opacity: 1; }
         }
       `}</style>
