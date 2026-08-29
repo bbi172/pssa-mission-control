@@ -60,6 +60,7 @@ export default function MissionPage() {
   const [metGoal, setMetGoal] = useState(false)
   const [moved, setMoved] = useState(false)
   const [isNewRecord, setIsNewRecord] = useState(false)
+  const [quote, setQuote] = useState<{ quote_text: string; author: string } | null>(null)
   const [reachedStar, setReachedStar] = useState(false)
 
   useEffect(() => { load() }, [])
@@ -229,6 +230,12 @@ export default function MissionPage() {
     setMoved(didMove)
     setIsNewRecord(isNewRecord)
     setReachedStar(hitStar)
+
+    const { data: quoteRow } = await supabase
+      .from('quotes').select('quote_text, author')
+      .eq('grade_level', gradeLevel).eq('day_number', question.day_number).maybeSingle()
+    setQuote(quoteRow || null)
+
     setSubmitting(false)
     setStep('video')
   }
@@ -411,6 +418,28 @@ export default function MissionPage() {
             <p>Your class filled the board! Head to the Mission Control Hallway to claim your reactor magnet.</p>
           </div>
         )}
+
+        <div style={{ borderTop: '1px solid var(--panel-edge)', marginTop: 8, paddingTop: 26 }}>
+          <p style={{ textAlign: 'center', fontSize: 15, color: 'var(--star-dim)', marginBottom: 18 }}>
+            That&apos;s the mission for today — great work, crew. See you tomorrow!
+          </p>
+          {quote && (
+            <div style={{ background: 'var(--void)', border: '1px solid var(--panel-edge)', borderRadius: 14, padding: '26px 28px', marginBottom: 22 }}>
+              <p style={{ fontSize: 19, fontStyle: 'italic', lineHeight: 1.55, color: 'var(--star)', marginBottom: 12 }}>
+                &ldquo;{quote.quote_text}&rdquo;
+              </p>
+              <p style={{ fontSize: 14, color: 'var(--thruster)', fontWeight: 700, textAlign: 'right' }}>
+                — {quote.author}
+              </p>
+            </div>
+          )}
+          <button
+            className="btn btn-primary btn-full"
+            onClick={async () => { await supabase.auth.signOut(); router.push('/login') }}
+          >
+            Log Out
+          </button>
+        </div>
       </div>
     </main>
   )
