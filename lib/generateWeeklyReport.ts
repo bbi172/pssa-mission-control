@@ -1,5 +1,5 @@
 import { supabaseAdmin } from './supabaseAdminClient'
-
+ 
 export type WeeklyReportData = {
   schoolName: string
   schoolGoal: number
@@ -18,7 +18,7 @@ export type WeeklyReportData = {
   topPerformerByGrade: { gradeLevel: number; teacherName: string; sectionLabel: string; average: number }[]
   incompleteTeachers: { teacherName: string; gradeLevel: number; sectionLabel: string; missedDays: number[] }[]
 }
-
+ 
 // "This week" = the 5 most recently completed school days (our day counter
 // only advances on real school days, so 5 days back is a solid stand-in
 // for "the last calendar week" without needing real date tracking).
@@ -28,55 +28,55 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
     .select('name, school_goal_pct, current_day_index')
     .eq('id', schoolId)
     .single()
-
+ 
   if (schoolErr || !school) throw new Error('School not found')
-
+ 
   const weekEndDay = school.current_day_index
   const weekStartDay = Math.max(1, weekEndDay - 4)
-
+ 
   const { data: sections, error: secErr } = await supabaseAdmin
     .from('sections')
     .select('id, label, best_pct, laps, teacher_id, teachers(name, grade_level, user_id)')
     .eq('school_id', schoolId)
-
+ 
   if (secErr || !sections) throw new Error('Could not load sections')
-
+ 
   // Exclude any teacher who is ALSO an administrator (these exist purely
   // so admins can preview the teacher interface, and would otherwise
   // skew real classroom statistics with test data).
   const { data: adminRows } = await supabaseAdmin.from('admins').select('user_id')
   const adminUserIds = new Set((adminRows || []).map(a => a.user_id))
   const realSections = (sections as any[]).filter(s => !adminUserIds.has(s.teachers?.user_id))
-
+ 
   const sectionIds = realSections.map(s => s.id)
-
+ 
   const { data: weekHistory } = await supabaseAdmin
     .from('daily_history')
     .select('section_id, day_number, pct, moved, missed')
     .in('section_id', sectionIds)
     .gte('day_number', weekStartDay)
     .lte('day_number', weekEndDay)
-
+ 
   const history = weekHistory || []
-
+ 
   const totalSpacesMovedThisWeek = history.filter(h => h.moved).length
   const highestPctThisWeek = history.reduce((max, h) => Math.max(max, h.pct || 0), 0)
-
+ 
   const scoredEntriesThisWeek = history.filter(h => !h.missed && h.pct !== null)
   const averagePctThisWeek = scoredEntriesThisWeek.length > 0
     ? Math.round(scoredEntriesThisWeek.reduce((sum, h) => sum + (h.pct || 0), 0) / scoredEntriesThisWeek.length)
     : 0
-
+ 
   const { data: allHistory } = await supabaseAdmin
     .from('daily_history')
     .select('section_id, pct')
     .in('section_id', sectionIds)
-
+ 
   const highestPctAllYear = (allHistory || []).reduce((max, h) => Math.max(max, h.pct || 0), 0)
   const reactorsToRemove = realSections.reduce((sum: number, s: any) => sum + (s.laps || 0), 0)
-
+ 
   const totalClassrooms = realSections.length
-
+ 
   // Highest year-to-date average, per grade level — shown regardless of
   // whether Competition Mode is turned on for teachers, since this report
   // is principal-facing and already names teachers elsewhere.
@@ -101,23 +101,35 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
     }
   }
   topPerformerByGrade.sort((a, b) => a.gradeLevel - b.gradeLevel)
-
+ 
   const daysInRange: number[] = []
   for (let d = weekStartDay; d <= weekEndDay; d++) daysInRange.push(d)
-
-  const possibleSubmissions = totalClassrooms * daysInRange.length
+ 
+  // Exclude any day the whole school was actually closed — closures never
+  // create a record for anyone, so without this, every closed day would
+  // wrongly look like every single teacher "missed" it.
+  const { data: closures } = await supabaseAdmin
+    .from('school_closures')
+    .select('day_number')
+    .eq('school_id', schoolId)
+    .in('day_number', daysInRange)
+ 
+  const closedDaySet = new Set((closures || []).map(c => c.day_number))
+  const realSchoolDaysInRange = daysInRange.filter(d => !closedDaySet.has(d))
+ 
+  const possibleSubmissions = totalClassrooms * realSchoolDaysInRange.length
   const actualSubmissions = scoredEntriesThisWeek.length
   const participationRate = possibleSubmissions > 0 ? Math.round((actualSubmissions / possibleSubmissions) * 100) : 0
-
+ 
   // How many distinct classrooms hit the goal on at least one day this week
   const classroomsMeetingGoalThisWeek = new Set(
     history.filter(h => !h.missed && (h.pct || 0) >= school.school_goal_pct).map(h => h.section_id)
   ).size
-
+ 
   const incompleteTeachers: WeeklyReportData['incompleteTeachers'] = []
   for (const s of realSections as any[]) {
     const sectionHistory = history.filter(h => h.section_id === s.id)
-    const missedDays = daysInRange.filter(d => {
+    const missedDays = realSchoolDaysInRange.filter(d => {
       const entry = sectionHistory.find(h => h.day_number === d)
       return !entry || entry.missed
     })
@@ -130,7 +142,7 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
       })
     }
   }
-
+ 
   return {
     schoolName: school.name,
     schoolGoal: school.school_goal_pct,
