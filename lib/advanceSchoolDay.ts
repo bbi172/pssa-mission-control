@@ -1,5 +1,5 @@
 import { supabaseAdmin } from './supabaseAdminClient'
- 
+
 // Advances ONE school by one day. isClosure=true records a closure and
 // skips penalizing anyone. isClosure=false is a normal day ending — any
 // section with no submission for today gets auto-logged as missed.
@@ -11,13 +11,13 @@ export async function advanceOneSchool(schoolId: string, isClosure: boolean, rea
     .select('current_day_index')
     .eq('id', schoolId)
     .single()
- 
+
   if (schoolErr || !school) {
     throw new Error(`School ${schoolId} not found`)
   }
- 
+
   const dayNumber = school.current_day_index + 1
- 
+
   if (isClosure) {
     const { error: closureErr } = await supabaseAdmin
       .from('school_closures')
@@ -28,9 +28,9 @@ export async function advanceOneSchool(schoolId: string, isClosure: boolean, rea
       .from('sections')
       .select('id')
       .eq('school_id', schoolId)
- 
+
     if (secErr) throw new Error(secErr.message)
- 
+
     for (const s of sections || []) {
       const { data: existing } = await supabaseAdmin
         .from('daily_history')
@@ -38,7 +38,7 @@ export async function advanceOneSchool(schoolId: string, isClosure: boolean, rea
         .eq('section_id', s.id)
         .eq('day_number', dayNumber)
         .maybeSingle()
- 
+
       if (!existing) {
         await supabaseAdmin.from('daily_history').insert({
           section_id: s.id,
@@ -48,20 +48,19 @@ export async function advanceOneSchool(schoolId: string, isClosure: boolean, rea
       }
     }
   }
- 
+
   const { error: updateErr } = await supabaseAdmin
     .from('schools')
     .update({ current_day_index: dayNumber, last_advanced_at: new Date().toISOString() })
     .eq('id', schoolId)
- 
+
   if (updateErr) throw new Error(updateErr.message)
- 
+
   // Reset substitute access for the new day — it's a "just for today" toggle
   await supabaseAdmin
     .from('teachers')
-    .update({ substitute_enabled: false })
+    .update({ substitute_enabled: false, substitute_code: null })
     .eq('school_id', schoolId)
- 
+
   return dayNumber
 }
- 

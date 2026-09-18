@@ -9,6 +9,7 @@ type Teacher = {
   name: string
   grade_level: number
   substitute_enabled: boolean
+  substitute_code: string | null
 }
 
 export default function AdminSubstitutesPage() {
@@ -37,7 +38,7 @@ export default function AdminSubstitutesPage() {
 
     const { data: teacherRows, error: tErr } = await supabase
       .from('teachers')
-      .select('id, name, grade_level, substitute_enabled')
+      .select('id, name, grade_level, substitute_enabled, substitute_code')
       .eq('school_id', admin.school_id)
       .order('grade_level')
       .order('name')
@@ -54,19 +55,20 @@ export default function AdminSubstitutesPage() {
 
   async function toggle(teacher: Teacher) {
     const newValue = !teacher.substitute_enabled
+    const newCode = newValue ? String(Math.floor(100000 + Math.random() * 900000)) : null
 
     // update on screen right away, then confirm with the database
-    setTeachers(teachers.map(t => t.id === teacher.id ? { ...t, substitute_enabled: newValue } : t))
+    setTeachers(teachers.map(t => t.id === teacher.id ? { ...t, substitute_enabled: newValue, substitute_code: newCode } : t))
 
     const { error: updateErr } = await supabase
       .from('teachers')
-      .update({ substitute_enabled: newValue })
+      .update({ substitute_enabled: newValue, substitute_code: newCode })
       .eq('id', teacher.id)
 
     if (updateErr) {
       setError(`Could not update: ${updateErr.message}`)
       // revert on failure
-      setTeachers(teachers.map(t => t.id === teacher.id ? { ...t, substitute_enabled: !newValue } : t))
+      setTeachers(teachers.map(t => t.id === teacher.id ? { ...t, substitute_enabled: !newValue, substitute_code: teacher.substitute_code } : t))
     }
   }
 
@@ -84,22 +86,29 @@ export default function AdminSubstitutesPage() {
 
         {teachers.map(t => (
           <div key={t.id} style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             borderBottom: '1px solid var(--panel-edge)', paddingBottom: 16, marginBottom: 16
           }}>
-            <span style={{ fontSize: 18, fontWeight: 600 }}>{t.name} <span style={{ color: 'var(--star-dim)', fontSize: 14 }}>· Grade {t.grade_level}</span></span>
-            <span
-              onClick={() => toggle(t)}
-              style={{
-                cursor: 'pointer', fontFamily: 'JetBrains Mono, monospace', fontSize: 14, fontWeight: 700,
-                padding: '9px 16px', borderRadius: 999,
-                background: t.substitute_enabled ? 'rgba(79,209,197,.15)' : 'rgba(167,173,201,.1)',
-                color: t.substitute_enabled ? 'var(--thruster)' : 'var(--star-dim)',
-                border: t.substitute_enabled ? '1px solid rgba(79,209,197,.4)' : '1px solid var(--panel-edge)',
-              }}
-            >
-              {t.substitute_enabled ? '● SUB ENABLED' : '○ DISABLED'}
-            </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 18, fontWeight: 600 }}>{t.name} <span style={{ color: 'var(--star-dim)', fontSize: 14 }}>· Grade {t.grade_level}</span></span>
+              <span
+                onClick={() => toggle(t)}
+                style={{
+                  cursor: 'pointer', fontFamily: 'JetBrains Mono, monospace', fontSize: 14, fontWeight: 700,
+                  padding: '9px 16px', borderRadius: 999,
+                  background: t.substitute_enabled ? 'rgba(79,209,197,.15)' : 'rgba(167,173,201,.1)',
+                  color: t.substitute_enabled ? 'var(--thruster)' : 'var(--star-dim)',
+                  border: t.substitute_enabled ? '1px solid rgba(79,209,197,.4)' : '1px solid var(--panel-edge)',
+                }}
+              >
+                {t.substitute_enabled ? '● SUB ENABLED' : '○ DISABLED'}
+              </span>
+            </div>
+            {t.substitute_enabled && t.substitute_code && (
+              <div style={{ marginTop: 10, fontSize: 14, color: 'var(--star-dim)' }}>
+                Today's sub code: <strong style={{ color: 'var(--star)', fontFamily: 'JetBrains Mono, monospace', fontSize: 16, letterSpacing: '.1em' }}>{t.substitute_code}</strong>
+                <span style={{ marginLeft: 8 }}>— give this to the substitute along with {t.name.split(' ')[0]}'s email address.</span>
+              </div>
+            )}
           </div>
         ))}
       </div>
