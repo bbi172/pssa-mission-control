@@ -31,7 +31,7 @@ export async function generateWeeklyReportData(schoolId: string): Promise<Weekly
  
   if (schoolErr || !school) throw new Error('School not found')
  
-  const weekEndDay = school.current_day_index
+  const weekEndDay = school.current_day_index + 1
   const weekStartDay = Math.max(1, weekEndDay - 4)
  
   const { data: sections, error: secErr } = await supabaseAdmin
